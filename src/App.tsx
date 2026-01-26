@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from './layouts/DashboardLayout';
-import { PlusCircle, Bot as BotIcon } from 'lucide-react';
+import { PlusCircle, Bot as BotIcon, LogOut } from 'lucide-react';
 import { BotEditor } from './pages/BotEditor';
 import { Login } from './pages/Login';
 import { Support } from './pages/Support';
 import { useAuth } from './context/AuthContext';
 import { cn } from './lib/utils';
+import {
+  collection,
+  query,
+  onSnapshot,
+  doc,
+  setDoc,
+  deleteDoc,
+  serverTimestamp
+} from 'firebase/firestore';
+import { db, auth } from './lib/firebase';
+import { signOut } from 'firebase/auth';
 
 interface BotData {
   id: string;
@@ -31,32 +42,31 @@ function App() {
   const [bots, setBots] = useState<BotData[]>([]);
   const [isReady, setIsReady] = useState(false);
 
-  // Initial data loading when user is authenticated
+  // Firestore standard loading
   useEffect(() => {
-    if (!authLoading) {
-      if (user) {
-        try {
-          const saved = localStorage.getItem(`bots_${user.uid}`);
-          setBots(saved ? JSON.parse(saved) : []);
-        } catch (e) {
-          console.error("Failed to load bots from localStorage:", e);
-          setBots([]);
-        }
-      } else {
-        setBots([]);
-      }
+    if (!authLoading && user) {
+      const q = query(collection(db, "users", user.uid, "bots"));
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const botsData: BotData[] = [];
+        querySnapshot.forEach((doc) => {
+          botsData.push({ id: doc.id, ...doc.data() } as BotData);
+        });
+        setBots(botsData);
+        setIsReady(true);
+      });
+      return () => unsubscribe();
+    } else if (!authLoading && !user) {
+      setBots([]);
       setIsReady(true);
-    } else {
-      setIsReady(false);
     }
   }, [user, authLoading]);
 
-  // Sync bots to localStorage
-  useEffect(() => {
-    if (user && isReady) {
-      localStorage.setItem(`bots_${user.uid}`, JSON.stringify(bots));
+  const handleLogout = async () => {
+    if (confirm("ログアウトしますか？")) {
+      await signOut(auth);
+      window.location.reload();
     }
-  }, [bots, user, isReady]);
+  };
 
   if (authLoading || !isReady) {
     return (
@@ -87,22 +97,49 @@ function App() {
     setActiveTab('dashboard');
   };
 
-  const createNewBot = () => {
+  const createNewBot = async () => {
+    if (!user) return;
     const newId = Date.now().toString();
     const newBot = {
       id: newId,
       name: `新規ボット ${bots.length + 1}`,
       description: '',
-      color: 'from-primary-500 to-blue-600'
+      color: 'from-primary-500 to-blue-600',
+      createdAt: serverTimestamp()
     };
-    setBots([...bots, newBot]);
-    setEditingBotId(newId);
-    setActiveTab('bots');
+
+    try {
+      await setDoc(doc(db, "users", user.uid, "bots", newId), newBot);
+      setEditingBotId(newId);
+      setActiveTab('bots');
+    } catch (e) {
+      console.error("Failed to create bot:", e);
+      alert("ボットの作成に失敗しました。");
+    }
   };
 
-  const handleSaveBot = (updatedBot: BotData) => {
-    setBots(bots.map(b => b.id === updatedBot.id ? updatedBot : b));
-    alert("設定を保存しました。");
+  const handleSaveBot = async (updatedBot: BotData) => {
+    if (!user) return;
+    try {
+      await setDoc(doc(db, "users", user.uid, "bots", updatedBot.id), updatedBot, { merge: true });
+      alert("クラウドに保存しました。");
+    } catch (e) {
+      console.error("Failed to save bot:", e);
+      alert("保存に失敗しました。詳細な権限設定を確認してください。");
+    }
+  };
+
+  const handleDeleteBot = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    if (confirm("このボットを削除しますか？")) {
+      try {
+        await deleteDoc(doc(db, "users", user.uid, "bots", id));
+        if (editingBotId === id) setEditingBotId(null);
+      } catch (e) {
+        console.error("Failed to delete bot:", e);
+      }
+    }
   };
 
   const currentBot = bots.find(b => b.id === editingBotId);
@@ -120,9 +157,19 @@ function App() {
       <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <section>
           <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">マイボット</h2>
-              <p className="text-slate-500 mt-1">LINE AIチャットボットの管理と設定を行います。</p>
+            <div className="flex items-center gap-6">
+              <div>
+                <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">マイボット</h2>
+                <p className="text-slate-500 mt-1">LINE AIチャットボットの管理と設定を行います。</p>
+              </div>
+              <div className="h-10 w-px bg-slate-200 dark:bg-slate-800" />
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all"
+              >
+                <LogOut size={16} />
+                <span>ログアウト</span>
+              </button>
             </div>
             <button
               onClick={createNewBot}
@@ -158,7 +205,7 @@ function App() {
                     setEditingBotId(bot.id);
                     setActiveTab('bots');
                   }}
-                  className="glass p-6 rounded-2xl group cursor-pointer hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 border border-transparent hover:border-primary-500/20"
+                  className="glass p-6 rounded-2xl group cursor-pointer hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 border border-transparent hover:border-primary-500/20 relative"
                 >
                   <div className="flex items-center gap-4 mb-4">
                     <div className={cn(
@@ -179,6 +226,12 @@ function App() {
                   <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
                     <button className="text-sm font-semibold text-primary-600 group-hover:translate-x-1 transition-transform">
                       設定を編集する →
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteBot(bot.id, e)}
+                      className="p-2 text-slate-400 hover:text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      削除
                     </button>
                   </div>
                 </div>
