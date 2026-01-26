@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from './layouts/DashboardLayout';
-import { PlusCircle, Bot } from 'lucide-react';
+import { PlusCircle, Bot as BotIcon } from 'lucide-react';
 import { BotEditor } from './pages/BotEditor';
 import { Login } from './pages/Login';
 import { Support } from './pages/Support';
@@ -13,29 +13,58 @@ interface BotData {
 }
 
 function App() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingBot, setEditingBot] = useState<string | null>(null);
-  const [bots, setBots] = useState<BotData[]>(() => {
-    const saved = localStorage.getItem(`bots_${user?.uid}`);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [bots, setBots] = useState<BotData[]>([]);
+  const [isReady, setIsReady] = useState(false);
 
+  // Initial data loading when user is authenticated
   useEffect(() => {
-    if (user) {
+    if (!authLoading) {
+      if (user) {
+        console.log("User authenticated, loading bots for:", user.uid);
+        try {
+          const saved = localStorage.getItem(`bots_${user.uid}`);
+          if (saved) {
+            setBots(JSON.parse(saved));
+          }
+        } catch (e) {
+          console.error("Failed to load bots from localStorage:", e);
+        }
+      } else {
+        console.log("No user session found.");
+      }
+      setIsReady(true);
+    }
+  }, [user, authLoading]);
+
+  // Sync bots to localStorage
+  useEffect(() => {
+    if (user && isReady) {
       localStorage.setItem(`bots_${user.uid}`, JSON.stringify(bots));
     }
-  }, [bots, user]);
+  }, [bots, user, isReady]);
+
+  if (authLoading || !isReady) {
+    return (
+      <div className="min-h-screen bg-[#071426] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+          <p className="text-slate-500 text-sm font-medium animate-pulse">データを読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return <Login />;
   }
 
-  // Handle tab changes from Sidebar
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (tab === 'create') {
-      setEditingBot('新規ボット');
+      createNewBot();
     } else {
       setEditingBot(null);
     }
@@ -47,31 +76,23 @@ function App() {
   };
 
   const createNewBot = () => {
-    const newBot = { name: '新規ボット', color: 'from-primary-500 to-blue-600' };
+    const newBot = { name: `新規ボット ${bots.length + 1}`, color: 'from-primary-500 to-blue-600' };
     setBots([...bots, newBot]);
     setEditingBot(newBot.name);
+    setActiveTab('bots');
   };
 
-  // Dedicated Support view
-  if (activeTab === 'support' && !editingBot) {
-    return (
-      <DashboardLayout activeTab={activeTab} setActiveTab={handleTabChange}>
-        <Support />
-      </DashboardLayout>
-    );
-  }
+  const renderContent = () => {
+    if (activeTab === 'support' && !editingBot) {
+      return <Support />;
+    }
 
-  if (editingBot) {
-    return (
-      <DashboardLayout activeTab={activeTab} setActiveTab={handleTabChange}>
-        <BotEditor botName={editingBot} onBack={handleBack} />
-      </DashboardLayout>
-    );
-  }
+    if (editingBot) {
+      return <BotEditor botName={editingBot} onBack={handleBack} />;
+    }
 
-  return (
-    <DashboardLayout activeTab={activeTab} setActiveTab={handleTabChange}>
-      <div className="max-w-6xl mx-auto space-y-8">
+    return (
+      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         <section>
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -90,7 +111,7 @@ function App() {
           {bots.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-20 glass rounded-[2.5rem] border-dashed border-2 border-slate-200 dark:border-slate-800">
               <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center mb-6 text-slate-400">
-                <Bot size={40} />
+                <BotIcon size={40} />
               </div>
               <h3 className="text-xl font-bold mb-2 text-slate-800 dark:text-white">ボットがまだありません</h3>
               <p className="text-slate-500 mb-8 max-w-sm text-center">
@@ -141,6 +162,12 @@ function App() {
           )}
         </section>
       </div>
+    );
+  };
+
+  return (
+    <DashboardLayout activeTab={activeTab} setActiveTab={handleTabChange}>
+      {renderContent()}
     </DashboardLayout>
   );
 }
