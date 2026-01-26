@@ -4,7 +4,7 @@ export async function getGeminiResponse(apiKey: string, systemPrompt: string, us
     const genAI = new GoogleGenerativeAI(apiKey);
 
     // Attempt multiple model identifiers to find one that works for the user's key/region
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest"];
 
     let lastError: any = null;
 
@@ -33,15 +33,21 @@ export async function getGeminiResponse(apiKey: string, systemPrompt: string, us
         } catch (error: any) {
             console.warn(`Model ${modelName} failed:`, error.message);
             lastError = error;
-            // If it's a 411 (invalid key) or 403 (restricted), don't bother trying other models
-            if (error.message?.includes("404")) continue;
+
+            // Check for explicit key errors
+            const errMsg = error.message || "";
+            if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("expired") || errMsg.includes("400")) {
+                throw new Error("APIキーが無効、または期限切れです。Google AI Studioで新しいキーを発行し、設定し直してください。");
+            }
+
+            if (errMsg.includes("404")) continue;
             break;
         }
     }
 
     // If we reach here, it failed for all attempted models
     if (lastError?.message?.includes("404")) {
-        throw new Error("AIモデルの読み込みに失敗しました(404)。APIキーが有効化されていないか、ご利用の地域で制限されている可能性があります。別のAPIキーを作成するか、しばらく待ってからお試しください。");
+        throw new Error("AIモデルの読み込みに失敗しました(404)。お使いのAPIキーがこのモデルに対応していない可能性があります。AI Studioで『New API Key in new project』として作り直してみてください。");
     }
 
     throw lastError || new Error("原因不明のエラーが発生しました。");
