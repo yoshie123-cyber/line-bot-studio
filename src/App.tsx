@@ -12,6 +12,7 @@ interface BotData {
   name: string;
   description: string;
   color: string;
+  geminiApiKey?: string;
   lineConfig?: {
     channelSecret: string;
     channelAccessToken: string;

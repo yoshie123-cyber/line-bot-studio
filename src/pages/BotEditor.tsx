@@ -5,15 +5,18 @@ import {
     Cpu,
     Globe,
     ArrowLeft,
-    Bot
+    Bot,
+    Key
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { getGeminiResponse } from '../lib/gemini';
 
 interface BotData {
     id: string;
     name: string;
     description: string;
     color: string;
+    geminiApiKey?: string;
     lineConfig?: {
         channelSecret: string;
         channelAccessToken: string;
@@ -37,52 +40,53 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
         { role: 'bot', text: 'こんにちは！何かお手伝いできることはありますか？' }
     ]);
     const [inputText, setInputText] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
 
     // Local form state
     const [name, setName] = useState(bot.name);
     const [description, setDescription] = useState(bot.description);
+    const [geminiApiKey, setGeminiApiKey] = useState(bot.geminiApiKey || '');
     const [channelSecret, setChannelSecret] = useState(bot.lineConfig?.channelSecret || '');
     const [channelAccessToken, setChannelAccessToken] = useState(bot.lineConfig?.channelAccessToken || '');
     const [systemPrompt, setSystemPrompt] = useState(bot.aiConfig?.systemPrompt || '');
-    const [model, setModel] = useState(bot.aiConfig?.model || 'GPT-5.0 (最新)');
+    const [model, setModel] = useState(bot.aiConfig?.model || 'Gemini 1.5 Flash (無料枠)');
     const [temperature, setTemperature] = useState(bot.aiConfig?.temperature || 0.7);
-    const [isTyping, setIsTyping] = useState(false);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!inputText.trim()) return;
-        setMessages([...messages, { role: 'user', text: inputText }]);
-        const currentInput = inputText;
+
+        const userMsg = inputText;
+        setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
         setInputText('');
         setIsTyping(true);
 
-        // Simulation logic: GPT-like sophisticated response simulation
-        setTimeout(() => {
-            setIsTyping(false);
-            let mockReply = '';
-            const lowerInput = currentInput.toLowerCase();
-
-            // Context Detection
-            const isGreeting = /こんにちは|こんばんは|おはよう|おは|hello|hi/.test(lowerInput);
-            const isQuestion = /？|\?|何|どう|教え|知りたい/.test(lowerInput);
-            const isSelfIntro = /誰|名前|おまえ|貴方|あなた/.test(lowerInput);
-
-            if (isSelfIntro) {
-                mockReply = `私は、あなたが設定したプロンプト（${systemPrompt.substring(0, 15)}...）に基づいて動作するAIアシスタント「${name}」です。\n\n現在はシミュレーター環境ですが、本番ではこの性格を維持しながら、LINEを通じてユーザー様と深い対話を行います。私にどのような役割を期待されていますか？`;
-            } else if (isGreeting) {
-                const greetings = [
-                    `こんにちは！本日も「${name}」として、誠心誠意お手伝いさせていただきます。`,
-                    `お疲れ様です。${name}が必要な時はいつでもお声がけくださいね。`,
-                    `${name}がお迎えいたします。今日はどのようなトピックについてお話ししましょうか？`
-                ];
-                mockReply = greetings[Math.floor(Math.random() * greetings.length)];
-            } else if (isQuestion) {
-                mockReply = `「${currentInput}」というご質問ですね。承知いたしました。\n\n私の設定である「${description || 'AIアシスタント'}」という立場から考えると、以下のようなアプローチが考えられます：\n\n1. ユーザーの意図を正確に把握する\n2. ${name}らしい独自のトーンで回答する\n3. ${model.split(' ')[0]}の高度な知識を活用する\n\nこれはデモ応答ですが、実際にAPIを連携すれば、あなたの理想通りの完璧な回答を生成できるようになりますよ！`;
+        try {
+            if (geminiApiKey) {
+                // Real AI Call
+                const response = await getGeminiResponse(geminiApiKey, systemPrompt, userMsg);
+                setMessages(prev => [...prev, { role: 'bot', text: response }]);
             } else {
-                mockReply = `承知いたしました。今の「${currentInput}」という入力を分析し、${name}としての最適な振る舞いをシミュレートしています。\n\nプロンプトの記述（${systemPrompt.substring(0, 20)}...）が非常に具体的ですので、本番環境でも一貫性のある、質の高い対話が期待できそうですね。`;
-            }
+                // Fallback Mock logic (Previous natural mock)
+                setTimeout(() => {
+                    let mockReply = '';
+                    const lowerInput = userMsg.toLowerCase();
+                    const hasGreeting = /こんにちは|こんばんは|おはよう|おは|hello|hi/.test(lowerInput);
 
-            setMessages(prev => [...prev, { role: 'bot', text: mockReply }]);
-        }, 1800);
+                    if (hasGreeting) {
+                        mockReply = `こんにちは！${name}です。お声がけいただきありがとうございます。本物のAIを体験するには、AI設定からGeminiのAPIキーを入力してください！`;
+                    } else {
+                        mockReply = `「${userMsg}」についてですね。現在はシミュレーターモードですが、APIキーを設定すればGeminiが本物の知能で回答します。`;
+                    }
+                    setIsTyping(false);
+                    setMessages(prev => [...prev, { role: 'bot', text: mockReply }]);
+                }, 1500);
+                return; // Early return for mock
+            }
+        } catch (error: any) {
+            setMessages(prev => [...prev, { role: 'bot', text: `エラーが発生しました: ${error.message || 'APIキーが無効か、通信エラーです。'}` }]);
+        } finally {
+            if (geminiApiKey) setIsTyping(false);
+        }
     };
 
     const handleSave = () => {
@@ -90,6 +94,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
             ...bot,
             name,
             description,
+            geminiApiKey,
             lineConfig: {
                 channelSecret,
                 channelAccessToken
@@ -175,6 +180,17 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
                         {activeTab === 'line' && (
                             <div className="space-y-6">
                                 <div>
+                                    <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                                        <Globe size={14} className="text-slate-400" />
+                                        <span>LINE Webhook URL</span>
+                                    </label>
+                                    <div className="p-4 bg-primary-50 dark:bg-primary-950/30 border border-primary-100 dark:border-primary-900 rounded-xl mb-6">
+                                        <code className="text-xs text-primary-700 dark:text-primary-300 break-all font-mono">
+                                            https://line-bot-studio.vercel.app/api/webhook
+                                        </code>
+                                    </div>
+                                </div>
+                                <div>
                                     <label className="block text-sm font-semibold mb-2">Channel Secret</label>
                                     <input
                                         type="password"
@@ -193,20 +209,36 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
                                         onChange={(e) => setChannelAccessToken(e.target.value)}
                                     />
                                 </div>
-                                <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl">
-                                    <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed font-medium">
-                                        Webhook URL: <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">https://line-bot-studio.vercel.app/api/webhook</code>
-                                    </p>
-                                </div>
                             </div>
                         )}
 
                         {activeTab === 'ai' && (
                             <div className="space-y-6">
+                                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900 rounded-xl">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white">
+                                            <Key size={16} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Google Gemini APIキー</h4>
+                                            <p className="text-[10px] text-emerald-600 dark:text-emerald-500">
+                                                無料で利用可能です。<a href="https://aistudio.google.com/app/apikey" target="_blank" className="underline hover:opacity-80">ここから取得</a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <input
+                                        type="password"
+                                        placeholder="AI Studioで取得したキーを貼り付け"
+                                        className="w-full bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 font-mono"
+                                        value={geminiApiKey}
+                                        onChange={(e) => setGeminiApiKey(e.target.value)}
+                                    />
+                                </div>
+
                                 <div>
                                     <label className="block text-sm font-semibold mb-2">システムプロンプト（ボットの性格設定）</label>
                                     <textarea
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary-500/20 min-h-[250px] font-mono text-sm leading-relaxed"
+                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary-500/20 min-h-[200px] font-mono text-sm leading-relaxed"
                                         placeholder="あなたは高級不動産の接客アシスタントです。丁寧な言葉遣いで答え、お客様に寄り添った提案をしてください..."
                                         value={systemPrompt}
                                         onChange={(e) => setSystemPrompt(e.target.value)}
@@ -220,10 +252,8 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
                                             value={model}
                                             onChange={(e) => setModel(e.target.value)}
                                         >
-                                            <option>GPT-5.0 (最新)</option>
-                                            <option>GPT-4o</option>
-                                            <option>GPT-4 Turbo</option>
-                                            <option>GPT-3.5 Turbo</option>
+                                            <option>Gemini 1.5 Flash (無料枠)</option>
+                                            <option>Gemini 1.5 Pro (高性能)</option>
                                         </select>
                                     </div>
                                     <div>
@@ -262,8 +292,13 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
                             <div className="flex flex-col h-full bg-[#071426]">
                                 {/* Simulator Header */}
                                 <div className="pt-12 pb-4 px-6 border-b border-white/5 bg-[#0b1d33]/80 backdrop-blur-md relative">
-                                    <div className="absolute top-14 right-6 px-2 py-0.5 bg-primary-500/20 border border-primary-500/30 rounded text-[9px] text-primary-400 font-bold tracking-tighter uppercase">
-                                        Simulated
+                                    <div className={cn(
+                                        "absolute top-14 right-6 px-1.5 py-0.5 border rounded text-[8px] font-bold uppercase tracking-widest",
+                                        geminiApiKey
+                                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                            : "bg-primary-500/10 border-primary-500/20 text-primary-400"
+                                    )}>
+                                        {geminiApiKey ? 'Live AI' : 'Simulated'}
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold text-xs uppercase">
@@ -295,8 +330,8 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
                                     ))}
                                     {isTyping && (
                                         <div className="flex justify-start">
-                                            <div className="bg-slate-800 text-slate-400 px-4 py-2.5 rounded-2xl rounded-tl-none flex gap-1">
-                                                <span className="w-1.5 h-1.5 bg-slate-600 rounded-full animate-bounce" />
+                                            <div className="bg-slate-800 text-slate-400 px-4 py-2.5 rounded-2xl rounded-tl-none flex gap-1 animate-pulse">
+                                                <span className="w-1.5 h-1.5 bg-slate-600 rounded-full animate-bounce [animation-delay:0s]" />
                                                 <span className="w-1.5 h-1.5 bg-slate-600 rounded-full animate-bounce [animation-delay:0.2s]" />
                                                 <span className="w-1.5 h-1.5 bg-slate-600 rounded-full animate-bounce [animation-delay:0.4s]" />
                                             </div>
@@ -312,12 +347,14 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
                                             value={inputText}
                                             onChange={(e) => setInputText(e.target.value)}
                                             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                                            placeholder="メッセージを入力してください..."
-                                            className="flex-1 bg-slate-800 text-white rounded-full px-4 py-2 text-sm outline-none border border-white/10 focus:border-primary-500/50 transition-colors"
+                                            disabled={isTyping}
+                                            placeholder={geminiApiKey ? "AIとチャットする..." : "メッセージを入力..."}
+                                            className="flex-1 bg-slate-800 text-white rounded-full px-4 py-2 text-sm outline-none border border-white/10 focus:border-primary-500/50 transition-colors disabled:opacity-50"
                                         />
                                         <button
                                             onClick={handleSend}
-                                            className="p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition-colors"
+                                            disabled={isTyping}
+                                            className="p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition-colors disabled:opacity-50"
                                         >
                                             <Send size={18} />
                                         </button>
