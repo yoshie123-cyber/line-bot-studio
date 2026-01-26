@@ -30,17 +30,21 @@ interface BotData {
 
 interface BotEditorProps {
     bot: BotData;
+    userId: string;
     onBack: () => void;
     onSave: (bot: BotData) => void;
 }
 
-export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => {
+export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSave }) => {
     const [activeTab, setActiveTab] = useState('basic');
     const [messages, setMessages] = useState([
         { role: 'bot', text: 'こんにちは！何かお手伝いできることはありますか？' }
     ]);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+
+    // Dynamic Webhook URL based on current domain and IDs
+    const webhookUrl = `${window.location.origin}/api/webhook?uid=${userId}&bid=${bot.id}`;
 
     // Local form state
     const [name, setName] = useState(bot.name);
@@ -184,10 +188,19 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
                                         <Globe size={14} className="text-slate-400" />
                                         <span>LINE Webhook URL</span>
                                     </label>
-                                    <div className="p-4 bg-primary-50 dark:bg-primary-950/30 border border-primary-100 dark:border-primary-900 rounded-xl mb-6">
-                                        <code className="text-xs text-primary-700 dark:text-primary-300 break-all font-mono">
-                                            https://line-bot-studio.vercel.app/api/webhook
+                                    <div className="flex items-center gap-2 p-4 bg-primary-50 dark:bg-primary-950/30 border border-primary-100 dark:border-primary-900 rounded-xl mb-6">
+                                        <code className="flex-1 text-xs text-primary-700 dark:text-primary-300 break-all font-mono">
+                                            {webhookUrl}
                                         </code>
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(webhookUrl);
+                                                alert("Webhook URLをコピーしました。 LINE Developer Consoleに貼り付けてください。");
+                                            }}
+                                            className="px-3 py-1 bg-white dark:bg-slate-800 border border-primary-200 dark:border-primary-800 rounded-lg text-[10px] font-bold text-primary-600 hover:bg-primary-50 transition-colors"
+                                        >
+                                            コピー
+                                        </button>
                                     </div>
                                 </div>
                                 <div>

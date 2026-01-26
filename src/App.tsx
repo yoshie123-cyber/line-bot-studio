@@ -150,7 +150,7 @@ function App() {
     }
 
     if (currentBot) {
-      return <BotEditor bot={currentBot} onBack={handleBack} onSave={handleSaveBot} />;
+      return <BotEditor bot={currentBot} userId={user.uid} onBack={handleBack} onSave={handleSaveBot} />;
     }
 
     return (
