@@ -46,26 +46,36 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
     const [systemPrompt, setSystemPrompt] = useState(bot.aiConfig?.systemPrompt || '');
     const [model, setModel] = useState(bot.aiConfig?.model || 'GPT-5.0 (最新)');
     const [temperature, setTemperature] = useState(bot.aiConfig?.temperature || 0.7);
+    const [isTyping, setIsTyping] = useState(false);
 
     const handleSend = () => {
         if (!inputText.trim()) return;
         setMessages([...messages, { role: 'user', text: inputText }]);
         const currentInput = inputText;
         setInputText('');
+        setIsTyping(true);
 
-        // Simulate "Thinking"
+        // Simulation logic: Provide a natural-sounding response that roles plays the persona
         setTimeout(() => {
+            setIsTyping(false);
             let mockReply = '';
-            if (currentInput.includes('こんにちは') || currentInput.includes('ハロー')) {
-                mockReply = `こんにちは！ボットの「${name}」です。設定されたプロンプト内容を読み込んで、あなたのお手伝いをする準備ができています。`;
-            } else if (currentInput.includes('何ができる') || currentInput.includes('機能')) {
-                mockReply = `私は「${systemPrompt.substring(0, 40)}...」という設定に基づき、LINEでユーザーをサポートできます。現在はシミュレーターモードですが、本番ではAIが最適な回答を生成します。`;
+
+            const lowerInput = currentInput.toLowerCase();
+            const hasGreeting = /こんにちは|こんばんは|おはよう|おは|hello|hi/.test(lowerInput);
+            const hasQuestion = lowerInput.includes('?') || lowerInput.includes('？') || lowerInput.includes('何') || lowerInput.includes('教え');
+
+            if (hasGreeting) {
+                mockReply = `こんにちは！${name}です。お声がけいただきありがとうございます。今日はどのようなお手伝いをいたしましょうか？`;
+            } else if (hasQuestion) {
+                mockReply = `「${currentInput}」についてですね。プロンプトで設定された指示を元に、最適なアドバイスをさせていただきます。具体的にはどのような情報が必要でしょうか？`;
+            } else if (currentInput.length < 5) {
+                mockReply = `かしこまりました。${currentInput}、しっかりと承りました。他にも何かございましたら、いつでもお気軽にお申し付けください。`;
             } else {
-                mockReply = `「${currentInput}」についてですね。システムプロンプトに記載された性格設定に沿って、${model} が回答を作成します。現在はプレビュー表示のため、共通の確認用メッセージをお返ししています。`;
+                mockReply = `貴重なご意見をありがとうございます。お客様に寄り添った対応ができるよう、日々学習しております。${name}として、最高のパートナーになれるよう努めます！`;
             }
 
             setMessages(prev => [...prev, { role: 'bot', text: mockReply }]);
-        }, 1200);
+        }, 1500);
     };
 
     const handleSave = () => {
@@ -267,7 +277,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
                                             msg.role === 'user' ? "justify-end" : "justify-start"
                                         )}>
                                             <div className={cn(
-                                                "max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
+                                                "max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed animate-in fade-in slide-in-from-bottom-2",
                                                 msg.role === 'user'
                                                     ? "bg-primary-600 text-white rounded-tr-none shadow-lg shadow-primary-500/20"
                                                     : "bg-slate-800 text-slate-100 rounded-tl-none"
@@ -276,6 +286,15 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
                                             </div>
                                         </div>
                                     ))}
+                                    {isTyping && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-slate-800 text-slate-400 px-4 py-2.5 rounded-2xl rounded-tl-none flex gap-1">
+                                                <span className="w-1.5 h-1.5 bg-slate-600 rounded-full animate-bounce" />
+                                                <span className="w-1.5 h-1.5 bg-slate-600 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                                <span className="w-1.5 h-1.5 bg-slate-600 rounded-full animate-bounce [animation-delay:0.4s]" />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Chat Input */}
