@@ -55,27 +55,34 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
         setInputText('');
         setIsTyping(true);
 
-        // Simulation logic: Provide a natural-sounding response that roles plays the persona
+        // Simulation logic: GPT-like sophisticated response simulation
         setTimeout(() => {
             setIsTyping(false);
             let mockReply = '';
-
             const lowerInput = currentInput.toLowerCase();
-            const hasGreeting = /こんにちは|こんばんは|おはよう|おは|hello|hi/.test(lowerInput);
-            const hasQuestion = lowerInput.includes('?') || lowerInput.includes('？') || lowerInput.includes('何') || lowerInput.includes('教え');
 
-            if (hasGreeting) {
-                mockReply = `こんにちは！${name}です。お声がけいただきありがとうございます。今日はどのようなお手伝いをいたしましょうか？`;
-            } else if (hasQuestion) {
-                mockReply = `「${currentInput}」についてですね。プロンプトで設定された指示を元に、最適なアドバイスをさせていただきます。具体的にはどのような情報が必要でしょうか？`;
-            } else if (currentInput.length < 5) {
-                mockReply = `かしこまりました。${currentInput}、しっかりと承りました。他にも何かございましたら、いつでもお気軽にお申し付けください。`;
+            // Context Detection
+            const isGreeting = /こんにちは|こんばんは|おはよう|おは|hello|hi/.test(lowerInput);
+            const isQuestion = /？|\?|何|どう|教え|知りたい/.test(lowerInput);
+            const isSelfIntro = /誰|名前|おまえ|貴方|あなた/.test(lowerInput);
+
+            if (isSelfIntro) {
+                mockReply = `私は、あなたが設定したプロンプト（${systemPrompt.substring(0, 15)}...）に基づいて動作するAIアシスタント「${name}」です。\n\n現在はシミュレーター環境ですが、本番ではこの性格を維持しながら、LINEを通じてユーザー様と深い対話を行います。私にどのような役割を期待されていますか？`;
+            } else if (isGreeting) {
+                const greetings = [
+                    `こんにちは！本日も「${name}」として、誠心誠意お手伝いさせていただきます。`,
+                    `お疲れ様です。${name}が必要な時はいつでもお声がけくださいね。`,
+                    `${name}がお迎えいたします。今日はどのようなトピックについてお話ししましょうか？`
+                ];
+                mockReply = greetings[Math.floor(Math.random() * greetings.length)];
+            } else if (isQuestion) {
+                mockReply = `「${currentInput}」というご質問ですね。承知いたしました。\n\n私の設定である「${description || 'AIアシスタント'}」という立場から考えると、以下のようなアプローチが考えられます：\n\n1. ユーザーの意図を正確に把握する\n2. ${name}らしい独自のトーンで回答する\n3. ${model.split(' ')[0]}の高度な知識を活用する\n\nこれはデモ応答ですが、実際にAPIを連携すれば、あなたの理想通りの完璧な回答を生成できるようになりますよ！`;
             } else {
-                mockReply = `貴重なご意見をありがとうございます。お客様に寄り添った対応ができるよう、日々学習しております。${name}として、最高のパートナーになれるよう努めます！`;
+                mockReply = `承知いたしました。今の「${currentInput}」という入力を分析し、${name}としての最適な振る舞いをシミュレートしています。\n\nプロンプトの記述（${systemPrompt.substring(0, 20)}...）が非常に具体的ですので、本番環境でも一貫性のある、質の高い対話が期待できそうですね。`;
             }
 
             setMessages(prev => [...prev, { role: 'bot', text: mockReply }]);
-        }, 1500);
+        }, 1800);
     };
 
     const handleSave = () => {
