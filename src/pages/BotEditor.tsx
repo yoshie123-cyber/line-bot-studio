@@ -244,7 +244,10 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
 
                             <div className="flex flex-col h-full bg-[#071426]">
                                 {/* Simulator Header */}
-                                <div className="pt-12 pb-4 px-6 border-b border-white/5 bg-[#0b1d33]/80 backdrop-blur-md">
+                                <div className="pt-12 pb-4 px-6 border-b border-white/5 bg-[#0b1d33]/80 backdrop-blur-md relative">
+                                    <div className="absolute top-14 right-6 px-2 py-0.5 bg-primary-500/20 border border-primary-500/30 rounded text-[9px] text-primary-400 font-bold tracking-tighter uppercase">
+                                        Simulated
+                                    </div>
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold text-xs uppercase">
                                             {name[0]}
