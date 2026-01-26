@@ -8,14 +8,25 @@ import { useAuth } from './context/AuthContext';
 import { cn } from './lib/utils';
 
 interface BotData {
+  id: string;
   name: string;
+  description: string;
   color: string;
+  lineConfig?: {
+    channelSecret: string;
+    channelAccessToken: string;
+  };
+  aiConfig?: {
+    systemPrompt: string;
+    model: string;
+    temperature: number;
+  };
 }
 
 function App() {
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [editingBot, setEditingBot] = useState<string | null>(null);
+  const [editingBotId, setEditingBotId] = useState<string | null>(null);
   const [bots, setBots] = useState<BotData[]>([]);
   const [isReady, setIsReady] = useState(false);
 
@@ -23,7 +34,6 @@ function App() {
   useEffect(() => {
     if (!authLoading) {
       if (user) {
-        console.log("User authenticated, loading bots for:", user.uid);
         try {
           const saved = localStorage.getItem(`bots_${user.uid}`);
           if (saved) {
@@ -32,8 +42,6 @@ function App() {
         } catch (e) {
           console.error("Failed to load bots from localStorage:", e);
         }
-      } else {
-        console.log("No user session found.");
       }
       setIsReady(true);
     }
@@ -47,7 +55,6 @@ function App() {
   }, [bots, user, isReady]);
 
   if (authLoading || !isReady) {
-    console.log(`Rendering loading state: authLoading=${authLoading}, isReady=${isReady}`);
     return (
       <div className="min-h-screen bg-[#071426] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -58,8 +65,6 @@ function App() {
     );
   }
 
-  console.log(`Rendering main state: user=${user?.uid || 'none'}, activeTab=${activeTab}`);
-
   if (!user) {
     return <Login />;
   }
@@ -69,29 +74,42 @@ function App() {
     if (tab === 'create') {
       createNewBot();
     } else {
-      setEditingBot(null);
+      setEditingBotId(null);
     }
   };
 
   const handleBack = () => {
-    setEditingBot(null);
+    setEditingBotId(null);
     setActiveTab('dashboard');
   };
 
   const createNewBot = () => {
-    const newBot = { name: `新規ボット ${bots.length + 1}`, color: 'from-primary-500 to-blue-600' };
+    const newId = Date.now().toString();
+    const newBot = {
+      id: newId,
+      name: `新規ボット ${bots.length + 1}`,
+      description: '',
+      color: 'from-primary-500 to-blue-600'
+    };
     setBots([...bots, newBot]);
-    setEditingBot(newBot.name);
+    setEditingBotId(newId);
     setActiveTab('bots');
   };
 
+  const handleSaveBot = (updatedBot: BotData) => {
+    setBots(bots.map(b => b.id === updatedBot.id ? updatedBot : b));
+    alert("設定を保存しました。");
+  };
+
+  const currentBot = bots.find(b => b.id === editingBotId);
+
   const renderContent = () => {
-    if (activeTab === 'support' && !editingBot) {
+    if (activeTab === 'support' && !editingBotId) {
       return <Support />;
     }
 
-    if (editingBot) {
-      return <BotEditor botName={editingBot} onBack={handleBack} />;
+    if (currentBot) {
+      return <BotEditor bot={currentBot} onBack={handleBack} onSave={handleSaveBot} />;
     }
 
     return (
@@ -129,11 +147,11 @@ function App() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {bots.map((bot, i) => (
+              {bots.map((bot) => (
                 <div
-                  key={i}
+                  key={bot.id}
                   onClick={() => {
-                    setEditingBot(bot.name);
+                    setEditingBotId(bot.id);
                     setActiveTab('bots');
                   }}
                   className="glass p-6 rounded-2xl group cursor-pointer hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 border border-transparent hover:border-primary-500/20"
