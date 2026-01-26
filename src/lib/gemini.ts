@@ -4,50 +4,57 @@ export async function getGeminiResponse(apiKey: string, systemPrompt: string, us
     const genAI = new GoogleGenerativeAI(apiKey);
 
     // Attempt multiple model identifiers to find one that works for the user's key/region
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest"];
+    // Including both 1.5 and 1.0 versions as fallbacks
+    const modelsToTry = [
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-pro",
+        "gemini-pro" // 1.0 Pro
+    ];
 
     let lastError: any = null;
 
     for (const modelName of modelsToTry) {
         try {
-            console.log(`Attempting Gemini call with model: ${modelName}`);
+            console.log(`[Gemini Debug] Attempting: ${modelName}`);
             const model = genAI.getGenerativeModel({ model: modelName });
 
-            // Using startChat for better compatibility across different model versions
-            const chat = model.startChat({
-                history: [
-                    {
-                        role: "user",
-                        parts: [{ text: `以下の指示に従って、チャットボットとして振る舞ってください。\n指示内容: ${systemPrompt}` }],
-                    },
-                    {
-                        role: "model",
-                        parts: [{ text: "承知いたしました。指示された通りのキャラクターで、丁寧かつ知的に回答させていただきます。どのようなご用件でしょうか？" }],
-                    },
-                ],
-            });
+            // Using simple generateContent for maximum compatibility first
+            // We combine the system prompt and user message into one prompt to ensure the persona is set
+            const fullPrompt = `System/Character Setting: ${systemPrompt}\n\nUser Message: ${userMessage}\n\nPlease respond naturally according to the setting above.`;
 
-            const result = await chat.sendMessage(userMessage);
+            const result = await model.generateContent(fullPrompt);
             const response = await result.response;
-            return response.text();
+            const text = response.text();
+
+            if (text) {
+                console.log(`[Gemini Debug] Success with model: ${modelName}`);
+                return text;
+            }
         } catch (error: any) {
-            console.warn(`Model ${modelName} failed:`, error.message);
+            console.warn(`[Gemini Debug] Model ${modelName} failed:`, error.message);
             lastError = error;
 
-            // Check for explicit key errors
             const errMsg = error.message || "";
+            // If it's a key error, stop immediately
             if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("expired") || errMsg.includes("400")) {
-                throw new Error("APIキーが無効、または期限切れです。Google AI Studioで新しいキーを発行し、設定し直してください。");
+                throw new Error("APIキーが正しくありません。AI Studioで『New API Key in new project』として作成した最新のキーを貼り付けてください。");
             }
 
+            // If it's a 404, try the next model
             if (errMsg.includes("404")) continue;
+
+            // For other errors (like quota), stop and report
             break;
         }
     }
 
-    // If we reach here, it failed for all attempted models
+    // Comprehensive error reporting
     if (lastError?.message?.includes("404")) {
-        throw new Error("AIモデルの読み込みに失敗しました(404)。お使いのAPIキーがこのモデルに対応していない可能性があります。AI Studioで『New API Key in new project』として作り直してみてください。");
+        throw new Error(`AIモデル(Gemini)が見つかりません。
+AI Studio側の設定で「Generative Language API」が有効になっているか、
+または別のGoogleアカウントで「新しいAPIキー」を発行し直してみてください。
+(デバッグログ: 404 Not Found)`);
     }
 
     throw lastError || new Error("原因不明のエラーが発生しました。");
