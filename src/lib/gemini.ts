@@ -2,62 +2,57 @@ export async function getGeminiResponse(apiKey: string, systemPrompt: string, us
     const cleanKey = apiKey.trim();
     if (!cleanKey) throw new Error("APIキーが入力されていません。");
 
-    // Dual-strategy: Try both stable (v1) and beta (v1beta) endpoints with various model aliases
-    const strategies = [
-        { version: 'v1beta', model: 'gemini-1.5-flash' },
-        { version: 'v1', model: 'gemini-1.5-flash' },
-        { version: 'v1beta', model: 'gemini-1.5-flash-latest' },
-        { version: 'v1beta', model: 'gemini-pro' }
-    ];
+    // We'll focus on the most standard endpoint and model to avoid confusion.
+    // gemini-1.5-flash is the most widely available free-tier model.
+    const baseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    const url = `${baseUrl}?key=${cleanKey}`;
 
-    let lastErrorDetails: any = null;
+    try {
+        console.log("[Gemini DEBUG] Attempting direct fetch to v1beta gemini-1.5-flash");
 
-    for (const strategy of strategies) {
-        const url = `https://generativelanguage.googleapis.com/${strategy.version}/models/${strategy.model}:generateContent?key=${cleanKey}`;
-
-        try {
-            console.log(`[Gemini DEBUG] Trying ${strategy.version} / ${strategy.model}...`);
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        role: "user",
-                        parts: [{ text: `System Setting: ${systemPrompt}\n\nUser Message: ${userMessage}` }]
-                    }],
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
-                    console.log(`[Gemini DEBUG] Success with ${strategy.version}/${strategy.model}`);
-                    return text;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: `あなたは以下の指示に従うチャットボットです。\n指示: ${systemPrompt}\n\nユーザーメッセージ: ${userMessage}\n回答:`
+                    }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1000,
                 }
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("[Gemini DEBUG] failure response:", data);
+
+            const status = response.status;
+            const message = data.error?.message || "不明なエラー";
+
+            if (status === 404) {
+                throw new Error(`【404エラー】AIモデルが見つかりません。
+これはプログラムではなく、APIキーの権限の問題です。
+1. AI Studioで『Create API key in NEW project』から新しくキーを作り直してください。
+2. もしお仕事用(Google Workspace)アカウントをお使いなら、管理者によって制限されている可能性があります。個人の@gmail.comアカウントで試すことを強くお勧めします。`);
             }
 
-            // If not OK, record the error and try next
-            lastErrorDetails = { status: response.status, data };
-            console.warn(`[Gemini DEBUG] Failed ${strategy.version}/${strategy.model}:`, data.error?.message);
-
-            // If it's a key error (400), don't bother trying other models
-            if (response.status === 400 && (data.error?.message?.includes("API_KEY_INVALID") || data.error?.message?.includes("expired"))) {
-                throw new Error("APIキーが無効、または期限切れです。AI Studioで新しいキーを作成してください。");
-            }
-
-        } catch (err: any) {
-            // Re-throw key-specific errors immediately
-            if (err.message.includes("APIキーが無効")) throw err;
-            lastErrorDetails = { error: err.message };
+            throw new Error(`Google APIエラー(${status}): ${message}`);
         }
+
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error("AIから有効な応答が得られませんでした。");
+
+        return text;
+
+    } catch (error: any) {
+        console.error("[Gemini DEBUG] Unexpected error:", error);
+        throw error;
     }
-
-    // Comprehensive error if all strategies fail
-    const errorMsg = lastErrorDetails.data?.error?.message || lastErrorDetails.error || "接続失敗";
-    const status = lastErrorDetails.status || "Unknown";
-
-    throw new Error(`AIとの通信に失敗しました(${status})。\n詳細: ${errorMsg}\n\n※404エラーが続く場合は、AI Studioの『Settings』→『Model settings』を確認するか、別のアカウントでキーを作り直してみてください。`);
 }
