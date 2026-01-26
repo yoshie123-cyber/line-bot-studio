@@ -47,6 +47,7 @@ function App() {
   }, [bots, user, isReady]);
 
   if (authLoading || !isReady) {
+    console.log(`Rendering loading state: authLoading=${authLoading}, isReady=${isReady}`);
     return (
       <div className="min-h-screen bg-[#071426] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -56,6 +57,8 @@ function App() {
       </div>
     );
   }
+
+  console.log(`Rendering main state: user=${user?.uid || 'none'}, activeTab=${activeTab}`);
 
   if (!user) {
     return <Login />;
