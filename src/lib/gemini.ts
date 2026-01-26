@@ -1,60 +1,66 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 export async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string) {
-    const genAI = new GoogleGenerativeAI(apiKey);
+    const cleanKey = apiKey.trim();
+    if (!cleanKey) throw new Error("APIキーが入力されていません。");
 
-    // Attempt multiple model identifiers to find one that works for the user's key/region
-    // "gemini-1.5-flash-latest" is often the most stable alias
-    const modelsToTry = [
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro-latest",
-        "gemini-pro"
-    ];
+    // Attempting the REST API directly for maximum compatibility and debugging
+    // We try gemini-1.5-flash which is the most available model.
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${cleanKey}`;
 
-    let lastError: any = null;
-
-    for (const modelName of modelsToTry) {
-        try {
-            console.log(`[Gemini Debug] Attempting model: ${modelName}`);
-            const model = genAI.getGenerativeModel({ model: modelName });
-
-            // Combine instructions for maximum compatibility if systemInstruction fails
-            const fullPrompt = `System Setting: ${systemPrompt}\n\nUser Message: ${userMessage}\n\nResponse:`;
-
-            const result = await model.generateContent(fullPrompt);
-            const response = await result.response;
-            const text = response.text();
-
-            if (text) {
-                console.log(`[Gemini Debug] Success with ${modelName}`);
-                return text;
+    const payload = {
+        contents: [
+            {
+                role: "user",
+                parts: [{ text: `System Setting: ${systemPrompt}\n\nUser Message: ${userMessage}` }]
             }
-        } catch (error: any) {
-            console.warn(`[Gemini Debug] Model ${modelName} failed:`, error.message);
-            lastError = error;
-
-            const errMsg = error.message || "";
-            // Key errors
-            if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("expired") || errMsg.includes("400")) {
-                throw new Error("APIキーが無効、または期限切れです。AI Studioで新しいキーを作成してください。");
-            }
-
-            // 404 means the model is not found in the current project context
-            if (errMsg.includes("404")) continue;
-
-            // For other errors (over quota, etc.), stop and report
-            break;
+        ],
+        generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 800,
         }
-    }
+    };
 
-    // Special message for persistent 404
-    if (lastError?.message?.includes("404")) {
-        throw new Error(`【Gemini接続エラー】
-ご利用のAPIキーが「AIモデル」の呼び出しを許可されていません。
-解決策：AI Studioで、既存のキーを使うのではなく必ず『Create API key in NEW project』から新しくキーを発行してください。
-(デバッグ情報: 404 Not Found)`);
-    }
+    try {
+        console.log("[Gemini DEBUG] Sending request to REST API...");
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
 
-    throw lastError || new Error("AIの応答を取得できませんでした。再度お試しください。");
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("[Gemini DEBUG] Error Response:", data);
+
+            const errorStatus = response.status;
+            const errorMsg = data.error?.message || "不明なエラー";
+
+            if (errorStatus === 400) {
+                if (errorMsg.includes("API_KEY_INVALID") || errorMsg.includes("expired")) {
+                    throw new Error("APIキーが無効、または期限切れです。Google AI Studioで新しいキーを作成してください。");
+                }
+                throw new Error(`リクエストエラー(400): ${errorMsg}`);
+            }
+
+            if (errorStatus === 404) {
+                throw new Error("AIモデル(gemini-1.5-flash)が見つかりません(404)。APIキーの設定または地域の制限を確認してください。");
+            }
+
+            if (errorStatus === 403) {
+                throw new Error("アクセス権限エラー(403)。このAPIキーでGemini APIが許可されているか確認してください。");
+            }
+
+            throw new Error(`通信エラー(${errorStatus}): ${errorMsg}`);
+        }
+
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error("AIからの応答が空でした。");
+
+        return text;
+    } catch (error: any) {
+        console.error("[Gemini DEBUG] Fetch catch error:", error);
+        throw error;
+    }
 }
