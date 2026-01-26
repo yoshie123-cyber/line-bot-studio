@@ -1,33 +1,53 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import {
+    onAuthStateChanged,
+    signInWithPopup,
+    signOut,
+    type User
+} from 'firebase/auth';
+import { auth, googleProvider } from '../lib/firebase';
 
 interface AuthContextType {
-    user: { name: string } | null;
-    login: (name: string) => void;
-    logout: () => void;
+    user: User | null;
+    loading: boolean;
+    loginWithGoogle: () => Promise<void>;
+    logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<{ name: string } | null>(() => {
-        const savedUser = localStorage.getItem('user');
-        return savedUser ? JSON.parse(savedUser) : null;
-    });
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    const login = (name: string) => {
-        const newUser = { name };
-        setUser(newUser);
-        localStorage.setItem('user', JSON.stringify(newUser));
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser: User | null) => {
+            setUser(currentUser);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const loginWithGoogle = async () => {
+        try {
+            await signInWithPopup(auth, googleProvider);
+        } catch (error) {
+            console.error("Login failed:", error);
+            throw error;
+        }
     };
 
-    const logout = () => {
-        setUser(null);
-        localStorage.removeItem('user');
+    const logout = async () => {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout }}>
-            {children}
+        <AuthContext.Provider value={{ user, loading, loginWithGoogle, logout }}>
+            {!loading && children}
         </AuthContext.Provider>
     );
 }

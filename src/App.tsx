@@ -1,16 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from './layouts/DashboardLayout';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Bot } from 'lucide-react';
 import { BotEditor } from './pages/BotEditor';
 import { Login } from './pages/Login';
 import { Support } from './pages/Support';
 import { useAuth } from './context/AuthContext';
 import { cn } from './lib/utils';
 
+interface BotData {
+  name: string;
+  color: string;
+}
+
 function App() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingBot, setEditingBot] = useState<string | null>(null);
+  const [bots, setBots] = useState<BotData[]>(() => {
+    const saved = localStorage.getItem(`bots_${user?.uid}`);
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem(`bots_${user.uid}`, JSON.stringify(bots));
+    }
+  }, [bots, user]);
 
   if (!user) {
     return <Login />;
@@ -29,6 +44,12 @@ function App() {
   const handleBack = () => {
     setEditingBot(null);
     setActiveTab('dashboard');
+  };
+
+  const createNewBot = () => {
+    const newBot = { name: '新規ボット', color: 'from-primary-500 to-blue-600' };
+    setBots([...bots, newBot]);
+    setEditingBot(newBot.name);
   };
 
   // Dedicated Support view
@@ -58,7 +79,7 @@ function App() {
               <p className="text-slate-500 mt-1">LINE AIチャットボットの管理と設定を行います。</p>
             </div>
             <button
-              onClick={() => handleTabChange('create')}
+              onClick={createNewBot}
               className="flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary-500/20"
             >
               <PlusCircle size={20} />
@@ -66,49 +87,58 @@ function App() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { name: 'サポートボット', color: 'from-primary-500 to-blue-600' },
-              { name: 'コンシェルジュAI', color: 'from-purple-500 to-indigo-600' },
-              { name: 'HRアシスタント', color: 'from-emerald-500 to-teal-600' },
-            ].map((bot, i) => (
-              <div
-                key={i}
-                onClick={() => {
-                  setEditingBot(bot.name);
-                  setActiveTab('bots');
-                }}
-                className="glass p-6 rounded-2xl group cursor-pointer hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 border border-transparent hover:border-primary-500/20"
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <div className={cn(
-                    "w-12 h-12 rounded-xl bg-gradient-to-tr flex items-center justify-center text-white font-bold text-xl uppercase",
-                    bot.color
-                  )}>
-                    {bot.name[0]}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-lg">{bot.name}</h4>
-                    <p className="text-sm text-slate-500">LINE公式アカウント連携</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mb-6">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-sm font-medium text-emerald-600">稼働中</span>
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <button className="text-sm font-semibold text-primary-600 group-hover:translate-x-1 transition-transform">
-                    設定を編集する →
-                  </button>
-                  <div className="flex -space-x-2">
-                    {[1, 2, 3].map(j => (
-                      <div key={j} className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-800" />
-                    ))}
-                  </div>
-                </div>
+          {bots.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-20 glass rounded-[2.5rem] border-dashed border-2 border-slate-200 dark:border-slate-800">
+              <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center mb-6 text-slate-400">
+                <Bot size={40} />
               </div>
-            ))}
-          </div>
+              <h3 className="text-xl font-bold mb-2 text-slate-800 dark:text-white">ボットがまだありません</h3>
+              <p className="text-slate-500 mb-8 max-w-sm text-center">
+                右上のボタンから最初のAIチャットボットを作成して、LINE連携を始めましょう。
+              </p>
+              <button
+                onClick={createNewBot}
+                className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-bold hover:opacity-90 transition-all active:scale-95 shadow-lg"
+              >
+                無料ではじめる
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {bots.map((bot, i) => (
+                <div
+                  key={i}
+                  onClick={() => {
+                    setEditingBot(bot.name);
+                    setActiveTab('bots');
+                  }}
+                  className="glass p-6 rounded-2xl group cursor-pointer hover:shadow-xl hover:shadow-primary-500/5 transition-all duration-300 border border-transparent hover:border-primary-500/20"
+                >
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className={cn(
+                      "w-12 h-12 rounded-xl bg-gradient-to-tr flex items-center justify-center text-white font-bold text-xl uppercase",
+                      bot.color
+                    )}>
+                      {bot.name[0]}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-lg">{bot.name}</h4>
+                      <p className="text-sm text-slate-500">LINE公式アカウント連携</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mb-6">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-sm font-medium text-emerald-600">稼働中</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <button className="text-sm font-semibold text-primary-600 group-hover:translate-x-1 transition-transform">
+                      設定を編集する →
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </DashboardLayout>

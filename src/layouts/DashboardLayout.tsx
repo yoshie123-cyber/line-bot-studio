@@ -24,7 +24,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, acti
                                     activeTab === 'support' ? 'サポート' : '設定'}
                     </h1>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{user?.name}</span>
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{user?.displayName}</span>
                         <button
                             onClick={logout}
                             className="p-2 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-lg transition-colors group relative"
