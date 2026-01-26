@@ -50,12 +50,14 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
     const handleSend = () => {
         if (!inputText.trim()) return;
         setMessages([...messages, { role: 'user', text: inputText }]);
+        const currentInput = inputText;
         setInputText('');
 
-        // Fake response
+        // Improved Fake response that "reflects" settings
         setTimeout(() => {
-            setMessages(prev => [...prev, { role: 'bot', text: 'これはシミュレーターの応答です。実際の連携機能は開発中です。' }]);
-        }, 1000);
+            const mockReply = `（シミュレーター応答）\n設定された性格「${systemPrompt.substring(0, 30)}${systemPrompt.length > 30 ? '...' : ''}」に基づき、「${currentInput}」への回答を生成しました。モデル: ${model}`;
+            setMessages(prev => [...prev, { role: 'bot', text: mockReply }]);
+        }, 800);
     };
 
     const handleSave = () => {
