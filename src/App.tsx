@@ -37,14 +37,17 @@ function App() {
       if (user) {
         try {
           const saved = localStorage.getItem(`bots_${user.uid}`);
-          if (saved) {
-            setBots(JSON.parse(saved));
-          }
+          setBots(saved ? JSON.parse(saved) : []);
         } catch (e) {
           console.error("Failed to load bots from localStorage:", e);
+          setBots([]);
         }
+      } else {
+        setBots([]);
       }
       setIsReady(true);
+    } else {
+      setIsReady(false);
     }
   }, [user, authLoading]);
 
