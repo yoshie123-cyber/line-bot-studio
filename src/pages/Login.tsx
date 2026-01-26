@@ -11,8 +11,9 @@ export const Login = () => {
         setIsLoading(true);
         try {
             await loginWithGoogle();
-        } catch (err) {
-            alert("ログインに失敗しました。Firebaseの設定を確認してください。");
+        } catch (err: any) {
+            console.error(err);
+            alert(`ログインに失敗しました。\nエラー内容: ${err.message || err.code || '不明なエラー'}`);
         } finally {
             setIsLoading(false);
         }
