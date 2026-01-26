@@ -93,22 +93,32 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
         }
     };
 
-    const handleSave = () => {
-        onSave({
-            ...bot,
-            name,
-            description,
-            geminiApiKey,
-            lineConfig: {
-                channelSecret,
-                channelAccessToken
-            },
-            aiConfig: {
-                systemPrompt,
-                model,
-                temperature
-            }
-        });
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+    const handleSave = async () => {
+        setSaveStatus('saving');
+        try {
+            await onSave({
+                ...bot,
+                name,
+                description,
+                geminiApiKey,
+                lineConfig: {
+                    channelSecret,
+                    channelAccessToken
+                },
+                aiConfig: {
+                    systemPrompt,
+                    model,
+                    temperature
+                }
+            });
+            setSaveStatus('saved');
+            setTimeout(() => setSaveStatus('idle'), 3000);
+        } catch (error) {
+            setSaveStatus('idle');
+            alert("保存に失敗しました。");
+        }
     };
 
     const tabs = [
@@ -129,10 +139,31 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                 <h2 className="text-3xl font-bold tracking-tight">{name} <span className="text-slate-400 text-base font-normal">/ 編集</span></h2>
                 <button
                     onClick={handleSave}
-                    className="ml-auto flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors shadow-lg shadow-primary-500/20 font-bold"
+                    disabled={saveStatus !== 'idle'}
+                    className={cn(
+                        "ml-auto flex items-center gap-2 px-6 py-3 rounded-xl transition-all shadow-lg font-bold min-w-[140px] justify-center",
+                        saveStatus === 'saved'
+                            ? "bg-emerald-500 text-white shadow-emerald-500/20"
+                            : "bg-primary-600 text-white hover:bg-primary-700 shadow-primary-500/20",
+                        saveStatus === 'saving' && "opacity-80 cursor-wait"
+                    )}
                 >
-                    <Save size={18} />
-                    <span>設定を保存</span>
+                    {saveStatus === 'saving' ? (
+                        <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>保存中...</span>
+                        </>
+                    ) : saveStatus === 'saved' ? (
+                        <>
+                            <Bot size={18} className="animate-bounce" />
+                            <span>保存完了！</span>
+                        </>
+                    ) : (
+                        <>
+                            <Save size={18} />
+                            <span>設定を保存</span>
+                        </>
+                    )}
                 </button>
             </div>
 
