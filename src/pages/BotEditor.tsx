@@ -53,11 +53,19 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, onBack, onSave }) => 
         const currentInput = inputText;
         setInputText('');
 
-        // Improved Fake response that "reflects" settings
+        // Simulate "Thinking"
         setTimeout(() => {
-            const mockReply = `（シミュレーター応答）\n設定された性格「${systemPrompt.substring(0, 30)}${systemPrompt.length > 30 ? '...' : ''}」に基づき、「${currentInput}」への回答を生成しました。モデル: ${model}`;
+            let mockReply = '';
+            if (currentInput.includes('こんにちは') || currentInput.includes('ハロー')) {
+                mockReply = `こんにちは！ボットの「${name}」です。設定されたプロンプト内容を読み込んで、あなたのお手伝いをする準備ができています。`;
+            } else if (currentInput.includes('何ができる') || currentInput.includes('機能')) {
+                mockReply = `私は「${systemPrompt.substring(0, 40)}...」という設定に基づき、LINEでユーザーをサポートできます。現在はシミュレーターモードですが、本番ではAIが最適な回答を生成します。`;
+            } else {
+                mockReply = `「${currentInput}」についてですね。システムプロンプトに記載された性格設定に沿って、${model} が回答を作成します。現在はプレビュー表示のため、共通の確認用メッセージをお返ししています。`;
+            }
+
             setMessages(prev => [...prev, { role: 'bot', text: mockReply }]);
-        }, 800);
+        }, 1200);
     };
 
     const handleSave = () => {
