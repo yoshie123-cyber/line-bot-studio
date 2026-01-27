@@ -19,8 +19,23 @@ export default async function handler(req: any, res: any) {
                 const apps = firebaseApp.getApps();
                 let app = apps.length ? apps[0] : null;
                 if (!app) {
-                    const sa = process.env.FIREBASE_SERVICE_ACCOUNT ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) : null;
-                    app = sa ? firebaseApp.initializeApp({ credential: firebaseApp.cert(sa) }) : firebaseApp.initializeApp({ projectId: 'linebot-66e62' });
+                    const saEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
+                    let sa = null;
+                    if (saEnv) {
+                        try {
+                            sa = JSON.parse(saEnv);
+                        } catch (e) {
+                            console.warn('[Webhook] FIREBASE_SERVICE_ACCOUNT is not valid JSON, using as fallback project ID');
+                        }
+                    }
+
+                    if (sa && typeof sa === 'object') {
+                        app = firebaseApp.initializeApp({ credential: firebaseApp.cert(sa) });
+                    } else {
+                        // Fallback to project ID (might use ADC or fail if not found)
+                        const pid = (typeof sa === 'string' ? sa : saEnv) || 'linebot-66e62';
+                        app = firebaseApp.initializeApp({ projectId: pid });
+                    }
                 }
                 const db = firebaseFirestore.getFirestore(app);
                 const botDoc = await db.doc(`users/${uid}/bots/${bid}`).get();
@@ -47,9 +62,9 @@ export default async function handler(req: any, res: any) {
 
         return res.status(200).send(`
             <div style="font-family: sans-serif; padding: 20px; line-height: 1.6; background: #fafafa; min-height: 100vh;">
-                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 2.2]</h1>
+                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 2.3]</h1>
                 <p>Function Status: <span style="background: #dfd; padding: 2px 6px; border-radius: 4px;">ALIVE</span></p>
-                <p>Service Account: ${process.env.FIREBASE_SERVICE_ACCOUNT ? '✅ Found' : '❌ Missing'}</p>
+                <p>Service Account: ${process.env.FIREBASE_SERVICE_ACCOUNT ? (process.env.FIREBASE_SERVICE_ACCOUNT.trim().startsWith('{') ? '✅ Found (JSON)' : '⚠️ Found (Text only)') : '❌ Missing'}</p>
                 <hr>
                 ${botStatus}
                 <p style="font-size: 12px; color: #666; margin-top: 20px;">Time: ${new Date().toLocaleString('ja-JP')}</p>
@@ -78,7 +93,17 @@ export default async function handler(req: any, res: any) {
             let app;
             if (!apps.length) {
                 const saEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
-                app = saEnv ? firebaseApp.initializeApp({ credential: firebaseApp.cert(JSON.parse(saEnv)) }) : firebaseApp.initializeApp({ projectId: 'linebot-66e62' });
+                let sa = null;
+                if (saEnv) {
+                    try { sa = JSON.parse(saEnv); } catch (e) { }
+                }
+
+                if (sa && typeof sa === 'object') {
+                    app = firebaseApp.initializeApp({ credential: firebaseApp.cert(sa) });
+                } else {
+                    const pid = (typeof sa === 'string' ? sa : saEnv) || 'linebot-66e62';
+                    app = firebaseApp.initializeApp({ projectId: pid });
+                }
             } else {
                 app = apps[0];
             }
@@ -141,7 +166,6 @@ export default async function handler(req: any, res: any) {
         console.error('[FATAL]', fatal.message);
         return res.status(200).send(`FATAL_CRASH: ${fatal.message}`);
     }
-}
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string) {
