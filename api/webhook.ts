@@ -4,31 +4,69 @@ export const config = { api: { bodyParser: false } };
 let cachedDb: any = null;
 
 export default async function handler(req: any, res: any) {
-    // 1. IMMEDIATE RESPONSE FOR DIAGNOSTICS (Zero dependencies)
+    // 1. DIAGNOSTICS
     if (req.method === 'GET') {
+        let botStatus = "Providing uid/bid in URL will test DB connection.";
+        const { uid, bid } = req.query;
+
+        try {
+            if (uid && bid) {
+                // Initialize Firebase briefly for diagnostic
+                const lineSdk = await import('@line/bot-sdk');
+                const firebaseApp = await import('firebase-admin/app');
+                const firebaseFirestore = await import('firebase-admin/firestore');
+
+                const apps = firebaseApp.getApps();
+                let app = apps.length ? apps[0] : null;
+                if (!app) {
+                    const sa = process.env.FIREBASE_SERVICE_ACCOUNT ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) : null;
+                    app = sa ? firebaseApp.initializeApp({ credential: firebaseApp.cert(sa) }) : firebaseApp.initializeApp({ projectId: 'linebot-66e62' });
+                }
+                const db = firebaseFirestore.getFirestore(app);
+                const botDoc = await db.doc(`users/${uid}/bots/${bid}`).get();
+
+                if (botDoc.exists) {
+                    const data = botDoc.data() || {};
+                    const hasLine = !!(data.lineConfig?.channelAccessToken && data.lineConfig?.channelSecret);
+                    const hasGemini = !!data.geminiApiKey;
+                    botStatus = `
+                        <div style="background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                            <h3 style="margin-top:0;">Bot: ${data.name || 'Unnamed'}</h3>
+                            <p>Database: ✅ Connected</p>
+                            <p>LINE Config: ${hasLine ? '✅ Valid' : '❌ Incomplete'}</p>
+                            <p>Gemini API: ${hasGemini ? '✅ Set' : '❌ Missing'}</p>
+                        </div>
+                    `;
+                } else {
+                    botStatus = `<p style="color: red;">Bot Not Found (Check your URL IDs)</p>`;
+                }
+            }
+        } catch (e: any) {
+            botStatus = `<p style="color: red;">Diagnostic Error: ${e.message}</p>`;
+        }
+
         return res.status(200).send(`
-            <div style="font-family: sans-serif; padding: 20px; line-height: 1.6;">
-                <h1 style="color: #00b900;">Webhook Rescue Mode [Ver 2.1]</h1>
-                <p>Status: <span style="background: #dfd; padding: 2px 6px;">ALIVE</span></p>
+            <div style="font-family: sans-serif; padding: 20px; line-height: 1.6; background: #fafafa; min-height: 100vh;">
+                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 2.2]</h1>
+                <p>Function Status: <span style="background: #dfd; padding: 2px 6px; border-radius: 4px;">ALIVE</span></p>
                 <p>Service Account: ${process.env.FIREBASE_SERVICE_ACCOUNT ? '✅ Found' : '❌ Missing'}</p>
-                <p>Time: ${new Date().toLocaleString('ja-JP')}</p>
-                <p>Env: ${process.env.NODE_ENV || 'unknown'}</p>
                 <hr>
-                <p>If you see this, the serverless function is running. The crash happens during library loading.</p>
+                ${botStatus}
+                <p style="font-size: 12px; color: #666; margin-top: 20px;">Time: ${new Date().toLocaleString('ja-JP')}</p>
             </div>
         `);
     }
 
     try {
-        // 2. DYNAMIC IMPORTS (Load only when needed)
+        // 2. DYNAMIC IMPORTS
         let lineSdk, firebaseApp, firebaseFirestore;
         try {
             lineSdk = await import('@line/bot-sdk');
             firebaseApp = await import('firebase-admin/app');
             firebaseFirestore = await import('firebase-admin/firestore');
         } catch (importErr: any) {
-            console.error('[CRASH] Import Failed:', importErr.message);
-            return res.status(200).send(`IMPORT_ERROR: ${importErr.message}. Check if package.json has these dependencies.`);
+            console.error('[FATAL] Import:', importErr.message);
+            return res.status(200).send(`IMPORT_ERR: ${importErr.message}`);
         }
 
         const { uid, bid } = req.query;
@@ -36,24 +74,15 @@ export default async function handler(req: any, res: any) {
 
         // 3. FIREBASE INIT
         if (!cachedDb) {
-            try {
-                const apps = firebaseApp.getApps();
-                let app;
-                if (!apps.length) {
-                    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-                        const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-                        app = firebaseApp.initializeApp({ credential: firebaseApp.cert(sa) });
-                    } else {
-                        app = firebaseApp.initializeApp({ projectId: 'linebot-66e62' });
-                    }
-                } else {
-                    app = apps[0];
-                }
-                cachedDb = firebaseFirestore.getFirestore(app);
-            } catch (fbErr: any) {
-                console.error('[CRASH] Firebase Init:', fbErr.message);
-                return res.status(200).send(`FIREBASE_CRASH: ${fbErr.message}`);
+            const apps = firebaseApp.getApps();
+            let app;
+            if (!apps.length) {
+                const saEnv = process.env.FIREBASE_SERVICE_ACCOUNT;
+                app = saEnv ? firebaseApp.initializeApp({ credential: firebaseApp.cert(JSON.parse(saEnv)) }) : firebaseApp.initializeApp({ projectId: 'linebot-66e62' });
+            } else {
+                app = apps[0];
             }
+            cachedDb = firebaseFirestore.getFirestore(app);
         }
 
         // 4. READ BODY
@@ -62,12 +91,14 @@ export default async function handler(req: any, res: any) {
             req.on('data', (chunk: any) => { data += chunk; });
             req.on('end', () => resolve(data));
         });
-
         if (!rawBody) return res.status(200).send('OK (Empty)');
 
         // 5. FETCH CONFIG
         const botDoc = await cachedDb.doc(`users/${uid}/bots/${bid}`).get();
-        if (!botDoc.exists) return res.status(200).send('OK (DB Not Found)');
+        if (!botDoc.exists) {
+            console.error('[DB] Bot not found:', bid);
+            return res.status(200).send('OK (Bot Not Found)');
+        }
 
         const botData = botDoc.data() || {};
         const { lineConfig, geminiApiKey, aiConfig } = botData;
@@ -75,25 +106,26 @@ export default async function handler(req: any, res: any) {
         const channelAccessToken = lineConfig?.channelAccessToken;
 
         if (!channelAccessToken || !channelSecret || !geminiApiKey) {
+            console.warn('[DB] Config Incomplete for bot:', bid);
             return res.status(200).send('OK (Config Incomplete)');
         }
 
-        // 6. PARSE & PROCESS
+        // 6. PROCESS
         let body;
-        try { body = JSON.parse(rawBody); } catch (e) { return res.status(200).send('OK (JSON Error)'); }
+        try { body = JSON.parse(rawBody); } catch (e) { return res.status(200).send('OK (JSON Err)'); }
 
         const events = body?.events || [];
+        console.log(`[Webhook] Event count: ${events.length} for bot: ${botData.name}`);
+
         if (events.length === 0) return res.status(200).send('Verification Success');
 
         const signature = req.headers['x-line-signature'] as string;
-        if (signature && !lineSdk.validateSignature(rawBody, channelSecret, signature)) {
-            console.warn('[WARN] Signature mismatch');
-        }
-
         const client = new lineSdk.Client({ channelAccessToken, channelSecret });
 
         const results = await Promise.all(events.map(async (event: any) => {
             if (event?.type !== 'message' || event?.message?.type !== 'text') return null;
+            console.log(`[Message] From ${event.source?.userId}: ${event.message.text}`);
+
             try {
                 const responseText = await getGeminiResponse(geminiApiKey, aiConfig?.systemPrompt || "", event.message.text);
                 return await client.replyMessage(event.replyToken, { type: 'text', text: responseText });
@@ -109,6 +141,7 @@ export default async function handler(req: any, res: any) {
         console.error('[FATAL]', fatal.message);
         return res.status(200).send(`FATAL_CRASH: ${fatal.message}`);
     }
+}
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string) {
