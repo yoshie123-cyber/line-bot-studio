@@ -1,32 +1,32 @@
 import { motion } from 'framer-motion';
-import { Bot, Sparkles, Zap, MessageSquare, ChevronRight, ExternalLink } from 'lucide-react';
+import { Sparkles, Zap, MessageSquare, ChevronRight, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
 const FEATURED_BOTS = [
     {
         id: '1',
-        name: 'AI 英語コーチ',
-        description: 'あなたのレベルに合わせて英会話の練習相手になります。',
-        icon: '🇬🇧',
-        color: 'from-blue-500 to-indigo-600',
-        users: '1.2k+'
+        name: 'デジタル秘書：さくら',
+        description: 'スケジュール管理からリサーチまで、多忙なビジネスマンを強力にサポートします。',
+        icon: '👩‍💼',
+        color: 'from-blue-600 to-indigo-700',
+        users: '3.2k+'
     },
     {
         id: '2',
-        name: '占い師 ミラ',
-        description: '毎日の運勢や悩みをタロットと占星術で占います。',
-        icon: '🔮',
-        color: 'from-purple-500 to-pink-600',
-        users: '850'
+        name: '予約受付：しゅん太',
+        description: '飲食店やサロンの空き時間を把握し、人間のようにスムーズな予約応対を行います。',
+        icon: '📅',
+        color: 'from-emerald-500 to-teal-600',
+        users: '1.5k+'
     },
     {
         id: '3',
-        name: '料理の鉄人助手',
-        description: '冷蔵庫の余り物から最高のレシピを提案します。',
-        icon: '🍳',
-        color: 'from-orange-500 to-red-600',
-        users: '2.1k+'
+        name: '採用アシスタント',
+        description: '候補者からの質問に24時間答え、面接の自動調整まで完結させます。',
+        icon: '🤝',
+        color: 'from-amber-500 to-orange-600',
+        users: '980'
     }
 ];
 
@@ -73,10 +73,10 @@ export const LandingPage = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-50 text-primary-600 text-xs font-bold mb-8 border border-primary-100"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-600 text-xs font-bold mb-8 border border-blue-100"
                     >
                         <Sparkles size={14} />
-                        Gemini & GPT-4 対応の最新ボット作成プラットフォーム
+                        最新のAIエンジン搭載。ビジネスの自動化をここから。
                     </motion.div>
 
                     <motion.h1
@@ -119,7 +119,10 @@ export const LandingPage = () => {
                                 </>
                             )}
                         </button>
-                        <button className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 font-bold rounded-2xl border border-slate-200 hover:bg-slate-50 transition-all shadow-sm">
+                        <button
+                            onClick={() => document.getElementById('usage-guide')?.scrollIntoView({ behavior: 'smooth' })}
+                            className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 font-bold rounded-2xl border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
+                        >
                             使い方を見る
                         </button>
                     </motion.div>
@@ -165,7 +168,7 @@ export const LandingPage = () => {
                         ))}
                     </div>
 
-                    <div className="text-center mt-12">
+                    <div className="text-center mt-12 hidden">
                         <button className="text-slate-500 font-bold hover:text-slate-800 transition-colors flex items-center gap-2 mx-auto">
                             すべてのボットを見る
                             <ChevronRight size={16} />
@@ -179,33 +182,51 @@ export const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
                         <div>
-                            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6">
+                            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6">
                                 <Zap size={24} />
                             </div>
-                            <h2 className="text-4xl font-bold mb-6 text-slate-900">
-                                最新のGemini 2.0に対応。<br />
-                                驚くほど自然な対話を。
+                            <h2 className="text-4xl font-bold mb-6 text-slate-900 leading-tight">
+                                LINE AIボットを<br />
+                                導入する3つのメリット
                             </h2>
-                            <ul className="space-y-4">
+                            <div className="space-y-8">
                                 {[
-                                    'Google Gemini / OpenAI GPT-4 両対応',
-                                    'リッチメッセージ（ボタン・リンク）作成',
-                                    'スマホ1台で完結する簡単エディタ',
-                                    '独自のWebhook URLを自動発行'
+                                    { title: '24時間365日の顧客対応', desc: '深夜や休日の問い合わせにもAIが即答。機会損失をゼロにし、顧客満足度を飛躍的に向上させます。' },
+                                    { title: '人件費の劇的な削減', desc: '一次対応をAIに任せることで、スタッフはより創造的で重要な業務に集中できるようになります。' },
+                                    { title: '高い開封率と成約率', desc: 'メールに比べ圧倒的に開封されやすいLINE。最適なタイミングでの提案で、コンバージョンを最大化します。' }
                                 ].map((item, i) => (
-                                    <li key={i} className="flex items-center gap-3 text-slate-600 font-medium">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />
-                                        {item}
-                                    </li>
+                                    <div key={i} className="flex gap-4">
+                                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold mt-1">
+                                            {i + 1}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 mb-1">{item.title}</h4>
+                                            <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
+                                        </div>
+                                    </div>
                                 ))}
-                            </ul>
+                            </div>
                         </div>
                         <div className="relative">
                             <div className="absolute inset-0 bg-primary-500/10 blur-[120px] rounded-full" />
-                            <div className="relative bg-slate-900 aspect-video rounded-3xl shadow-2xl border border-slate-800 overflow-hidden flex items-center justify-center">
-                                <div className="text-slate-500 flex flex-col items-center gap-4">
-                                    <Bot size={48} className="animate-bounce" />
-                                    <p className="text-xs font-mono tracking-widest uppercase">Admin Dashboard Preview</p>
+                            <div className="relative bg-white aspect-[4/3] rounded-3xl shadow-2xl border border-slate-100 overflow-hidden p-8">
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-slate-50 rounded-2xl text-xs text-slate-500 font-mono">
+                                        SYSTEM: あなたは優秀なカスタマーサポートです。
+                                    </div>
+                                    <div className="flex justify-end">
+                                        <div className="bg-blue-600 text-white p-3 rounded-2xl rounded-tr-none text-sm shadow-lg shadow-blue-500/20">
+                                            営業時間は？
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-start">
+                                        <div className="bg-slate-100 text-slate-700 p-3 rounded-2xl rounded-tl-none text-sm animate-pulse">
+                                            平日9:00〜18:00となっております...
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                    Simulated Admin View
                                 </div>
                             </div>
                         </div>
@@ -213,7 +234,34 @@ export const LandingPage = () => {
                 </div>
             </section>
 
-            {/* CTA Footer */}
+            {/* Usage Guide Section */}
+            <section id="usage-guide" className="py-24 px-6 bg-white overflow-hidden relative">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl font-bold text-slate-900 mb-4 tracking-tight">かんたん 3ステップで公開</h2>
+                        <p className="text-slate-500">専門知識がなくても、以下の手順でボットを稼働させることができます。</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+                        {/* Connecting Line */}
+                        <div className="hidden md:block absolute top-[40px] left-[15%] right-[15%] h-0.5 border-t-2 border-dashed border-slate-100 -z-10" />
+
+                        {[
+                            { step: '01', title: 'ログインして作成', desc: 'Googleアカウントでログインし、「ボット作成」ボタンをクリックします。' },
+                            { step: '02', title: '性格と鍵の設定', desc: 'AIの性格（システムプロンプト）を書き込み、LINEのAPI情報を入力します。' },
+                            { step: '03', title: 'URLをコピー＆公開', desc: '表示された専用Webhook URLをLINE側に設定するだけで、運用が開始されます。' }
+                        ].map((item, idx) => (
+                            <div key={idx} className="text-center group">
+                                <div className="w-20 h-20 rounded-full bg-slate-50 group-hover:bg-blue-600 transition-colors flex items-center justify-center border-4 border-white shadow-xl mx-auto mb-6">
+                                    <span className="text-2xl font-black text-slate-300 group-hover:text-white">{item.step}</span>
+                                </div>
+                                <h4 className="font-bold text-slate-900 mb-2">{item.title}</h4>
+                                <p className="text-slate-500 text-sm leading-relaxed px-4">{item.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
             <section className="py-20 px-6">
                 <div className="max-w-4xl mx-auto bg-gradient-to-tr from-slate-900 to-slate-800 rounded-[3rem] p-12 text-center text-white relative overflow-hidden shadow-2xl">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/10 rounded-full blur-[80px]" />
