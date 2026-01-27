@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from './layouts/DashboardLayout';
-import { PlusCircle, Bot as BotIcon, LogOut } from 'lucide-react';
+import { PlusCircle, Bot as BotIcon } from 'lucide-react';
 import { BotEditor } from './pages/BotEditor';
 import { Login } from './pages/Login';
 import { Support } from './pages/Support';
