@@ -6,8 +6,7 @@ import {
     Globe,
     ArrowLeft,
     Bot,
-    Key,
-    Sparkles
+    Key
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getGeminiResponse } from '../lib/gemini';

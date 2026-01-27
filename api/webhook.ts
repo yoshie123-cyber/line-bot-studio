@@ -238,6 +238,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string) {
+    const WEBHOOK_VERSION = 'v1.5.7';
     const cleanKey = apiKey.trim();
 
     // Clean and normalize the preferred model name (remove UI annotations like "(推奨)")
@@ -309,7 +310,7 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
         throw new Error(`[Google AI Quota] 全ての有力モデル (${modelQueue.join(', ')}) で制限に達しました。${keyHint}\n\n【詳細】${lastError.substring(0, 100)}...`);
     }
 
-    throw new Error(`AIの応答に失敗しました。${keyHint} (Last error: ${lastError.substring(0, 50)}...)`);
+    throw new Error(`AIの応答に失敗しました。${keyHint} [Ver: ${WEBHOOK_VERSION}] (Last error: ${lastError.substring(0, 50)}...)`);
 }
 
 /**
