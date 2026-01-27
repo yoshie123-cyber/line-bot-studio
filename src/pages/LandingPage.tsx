@@ -6,12 +6,12 @@ import { cn } from '../lib/utils';
 
 const LineChatAnimation = () => {
     const messages = [
-        { type: 'user', text: '冷蔵庫の写真を送るから、レシピを考えて！', delay: 0 },
-        { type: 'bot', text: '承知いたしました！お写真を拝見します。', delay: 1.5 },
-        { type: 'user', img: '🥬🥩', text: '（写真を送信しました）', delay: 3 },
-        { type: 'bot', text: 'ありがとうございます。豚肉、キャベツ、ピーマンがありますね！それなら「回鍋肉」はいかがでしょうか？作り方もお教えできます。', delay: 5 },
-        { type: 'user', text: 'いいですね！あと、明日の19時に予約を入れたいです。', delay: 7.5 },
-        { type: 'bot', text: '承知いたしました。明日の19時に1名様でご予約を承りました！', delay: 9 },
+        { type: 'user', text: 'おすすめの商品を教えて！', delay: 0 },
+        { type: 'bot', text: '今の季節なら「オーガニック・ハーブティー」がギフトとして大人気ですよ！', delay: 1.5 },
+        { type: 'user', text: 'いいですね！あと、明日の19時に予約を入れたいです。', delay: 4 },
+        { type: 'bot', text: '承知いたしました。明日の19時に1名様でご予約を承りました！', delay: 5.5 },
+        { type: 'user', text: 'ありがとう！助かります。', delay: 8 },
+        { type: 'bot', text: 'とんでもございません。お客様のビジネスを24時間サポートいたします。', delay: 9.5 },
     ];
 
     return (
@@ -41,11 +41,6 @@ const LineChatAnimation = () => {
                             msg.type === 'user' ? "ml-auto items-end" : "mr-auto items-start"
                         )}
                     >
-                        {msg.img && (
-                            <div className="w-24 h-24 rounded-2xl bg-slate-800 flex items-center justify-center text-4xl mb-1 border border-white/10">
-                                {msg.img}
-                            </div>
-                        )}
                         <div className={cn(
                             "px-4 py-2.5 rounded-2xl text-[11px] leading-relaxed shadow-sm",
                             msg.type === 'user'
