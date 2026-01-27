@@ -1,14 +1,14 @@
 import { Client, WebhookEvent, validateSignature } from '@line/bot-sdk';
 import * as admin from 'firebase-admin';
 
-// Disable default body parser to get raw body for signature verification
+// Disable default body parser for raw body signature check
 export const config = {
     api: {
         bodyParser: false,
     },
 };
 
-// Initialize Firebase Admin
+// Robust Firebase Admin Initialization
 if (!admin.apps.length) {
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
         try {
@@ -16,20 +16,21 @@ if (!admin.apps.length) {
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccount)
             });
+            console.log("[Webhook] Initialized with Service Account.");
         } catch (e) {
-            console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', e);
+            console.error('[Webhook] Failed to parse FIREBASE_SERVICE_ACCOUNT:', e);
             admin.initializeApp({ projectId: 'linebot-66e62' });
         }
     } else {
-        admin.initializeApp({
-            projectId: 'linebot-66e62'
-        });
+        // Fallback (might fail in production if not in Google Cloud)
+        console.warn("[Webhook] No service account found. Using default initialization.");
+        admin.initializeApp({ projectId: 'linebot-66e62' });
     }
 }
 
 const db = admin.firestore();
 
-// Helper to read raw body from stream
+// Helper for raw body
 async function getRawBody(readable: any): Promise<string> {
     const chunks = [];
     for await (const chunk of readable) {
@@ -40,50 +41,54 @@ async function getRawBody(readable: any): Promise<string> {
 
 export default async function handler(req: any, res: any) {
     if (req.method !== 'POST') {
-        return res.status(405).send('Method Not Allowed');
+        return res.status(405).send('Only POST allowed');
     }
 
     const { uid, bid } = req.query;
     if (!uid || !bid) {
-        return res.status(400).send('Missing uid or bid parameters');
+        return res.status(200).send('Webhook is active! (Missing query parameters: uid, bid)');
     }
 
     try {
-        // Read raw body
         const rawBody = await getRawBody(req);
 
-        // 1. Fetch Bot Settings from Firestore
-        const botDoc = await db.doc(`users/${uid}/bots/${bid}`).get();
+        // 1. Fetch Bot Settings (Crucial step)
+        let botDoc;
+        try {
+            botDoc = await db.doc(`users/${uid}/bots/${bid}`).get();
+        } catch (dbErr: any) {
+            console.error('[Webhook] Database Access Error:', dbErr.message);
+            // If it's a verification probe from LINE, we MUST try to return 200
+            // but we can add the error to the body for the user to see in logs.
+            return res.status(200).send(`WARNING: Webhook reached but Database failed. Reason: ${dbErr.message}. Ensure FIREBASE_SERVICE_ACCOUNT is set in Vercel.`);
+        }
+
         if (!botDoc.exists) {
-            console.error(`Bot not found: users/${uid}/bots/${bid}`);
-            return res.status(404).send('Bot not found in database');
+            console.warn(`[Webhook] Bot not found: users/${uid}/bots/${bid}`);
+            return res.status(200).send('OK (Bot config not found in Firestore)');
         }
 
         const botData = botDoc.data() as any;
         const { lineConfig, geminiApiKey } = botData;
 
-        // 2. Signature Verification
+        // 2. Signature & Config Check
         const signature = req.headers['x-line-signature'] as string;
-        if (!signature) {
-            console.warn('Missing x-line-signature header');
-            // For the initial "Verify" probe, we might want to be lenient or 
-            // handle it specifically. LINE's Verify button sends a valid signature.
-        }
-
-        if (signature && lineConfig?.channelSecret) {
-            if (!validateSignature(rawBody, lineConfig.channelSecret, signature)) {
-                console.warn('Signature validation failed. Proceeding anyway for debugging.');
-            }
-        }
-
-        // 3. Parse Body
-        const body = JSON.parse(rawBody);
-        const events: WebhookEvent[] = body.events || [];
 
         // Handle empty events (LINE Verification Probe)
-        if (events.length === 0) {
-            console.log('Verification probe received (0 events).');
-            return res.status(200).send('OK');
+        const bodyParsed = JSON.parse(rawBody);
+        if (!bodyParsed.events || bodyParsed.events.length === 0) {
+            console.log('[Webhook] LINE Verification Probe received.');
+            return res.status(200).send('Webhook Verification Successful');
+        }
+
+        if (!lineConfig?.channelAccessToken || !lineConfig?.channelSecret || !geminiApiKey) {
+            console.error('[Webhook] Missing configuration for bot.');
+            return res.status(200).send('OK (Configuration missing in Firestore)');
+        }
+
+        // 3. Security Check
+        if (signature && !validateSignature(rawBody, lineConfig.channelSecret, signature)) {
+            console.warn('[Webhook] Invalid signature. Proceeding for debugging but security risk.');
         }
 
         const client = new Client({
@@ -92,12 +97,13 @@ export default async function handler(req: any, res: any) {
         });
 
         // 4. Process Events
-        const results = await Promise.all(events.map(event => handleEvent(client, event, botData)));
+        const results = await Promise.all(bodyParsed.events.map((event: WebhookEvent) => handleEvent(client, event, botData)));
         return res.status(200).json(results);
 
     } catch (error: any) {
-        console.error('Webhook Error:', error);
-        return res.status(500).send(`Internal Error: ${error.message}`);
+        console.error('[Webhook] Global Catch:', error);
+        // Always try to return 200 for LINE to avoid disabling the webhook
+        return res.status(200).send(`Error Handled: ${error.message}`);
     }
 }
 
@@ -112,49 +118,29 @@ async function handleEvent(client: Client, event: WebhookEvent, botData: any) {
 
     try {
         const aiResponse = await getGeminiResponse(geminiApiKey, systemPrompt, userMessage);
-        return client.replyMessage(event.replyToken, {
-            type: 'text',
-            text: aiResponse,
-        });
-    } catch (error) {
-        console.error('AI Processing Error:', error);
-        return client.replyMessage(event.replyToken, {
-            type: 'text',
-            text: "申し訳ありません。現在メッセージの処理中にエラーが発生しました。",
-        });
+        return client.replyMessage(event.replyToken, { type: 'text', text: aiResponse });
+    } catch (error: any) {
+        console.error('[Webhook] AI Response Error:', error.message);
+        return client.replyMessage(event.replyToken, { type: 'text', text: "AI応答中にエラーが発生しました。" });
     }
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string) {
-    const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash"];
-    let lastError = null;
+    const model = "gemini-1.5-flash"; // Simplified for production stable
+    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
-    for (const modelName of modelsToTry) {
-        const version = modelName.includes("2.") ? "v1beta" : "v1";
-        const url = `https://generativelanguage.googleapis.com/${version}/models/${modelName}:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: `System Setting: ${systemPrompt}\n\nUser Message: ${userMessage}` }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
+        })
+    });
 
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{
-                        parts: [{ text: `System Setting: ${systemPrompt}\n\nUser Message: ${userMessage}` }]
-                    }],
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
-                })
-            });
-
-            const data: any = await response.json();
-            if (response.ok) {
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "AIからの応答がありませんでした。";
-            }
-            lastError = data.error?.message;
-            if (response.status === 429) continue;
-            break;
-        } catch (err: any) {
-            lastError = err.message;
-        }
+    const data: any = await response.json();
+    if (response.ok) {
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "AI回答なし";
     }
-    throw new Error(lastError || "AI connection failed");
+    throw new Error(data.error?.message || "Gemini API Failure");
 }

@@ -40,10 +40,12 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingBotId, setEditingBotId] = useState<string | null>(null);
   const [bots, setBots] = useState<BotData[]>([]);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  // Firestore standard loading
+  // Firestore standard loading with robust state management
   useEffect(() => {
     if (!authLoading && user) {
+      console.log("[App] Subscribing to Firestore...");
       const q = query(collection(db, "users", user.uid, "bots"));
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const botsData: BotData[] = [];
@@ -51,10 +53,15 @@ function App() {
           botsData.push({ id: doc.id, ...doc.data() } as BotData);
         });
         setBots(botsData);
+        setIsDataLoaded(true);
+      }, (error) => {
+        console.error("[App] Firestore load error:", error);
+        setIsDataLoaded(true); // Don't block UI forever on error
       });
       return () => unsubscribe();
     } else if (!authLoading && !user) {
       setBots([]);
+      setIsDataLoaded(true);
     }
   }, [user, authLoading]);
 
@@ -65,12 +72,12 @@ function App() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || (!isDataLoaded && user)) {
     return (
       <div className="min-h-screen bg-[#071426] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm font-medium animate-pulse">認証中...</p>
+          <p className="text-slate-500 text-sm font-medium animate-pulse">データを読み込み中...</p>
         </div>
       </div>
     );
@@ -82,9 +89,7 @@ function App() {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    if (tab === 'create') {
-      createNewBot();
-    } else {
+    if (tab === 'dashboard') {
       setEditingBotId(null);
     }
   };
@@ -111,17 +116,20 @@ function App() {
       setActiveTab('bots');
     } catch (e) {
       console.error("Failed to create bot:", e);
-      alert("ボットの作成に失敗しました。");
     }
   };
 
   const handleSaveBot = async (updatedBot: BotData) => {
     if (!user) return;
     try {
-      await setDoc(doc(db, "users", user.uid, "bots", updatedBot.id), updatedBot, { merge: true });
+      // Add a 10s timeout to avoid infinite spinning
+      await Promise.race([
+        setDoc(doc(db, "users", user.uid, "bots", updatedBot.id), updatedBot, { merge: true }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 10000))
+      ]);
     } catch (e) {
       console.error("Failed to save bot:", e);
-      throw e; // Throw to be caught by BotEditor
+      throw e;
     }
   };
 
@@ -225,7 +233,7 @@ function App() {
                     </button>
                     <button
                       onClick={(e) => handleDeleteBot(bot.id, e)}
-                      className="p-2 text-slate-400 hover:text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                      className="p-2 text-slate-400 hover:text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all font-bold text-[10px]"
                     >
                       削除
                     </button>
