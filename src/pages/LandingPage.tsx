@@ -273,7 +273,7 @@ export const LandingPage = () => {
                 <div className="flex items-center justify-center gap-8 mb-6 font-bold text-slate-500">
                     <button className="hover:text-slate-900">利用規約</button>
                     <button className="hover:text-slate-900">プライバシーポリシー</button>
-                    <button className="hover:text-slate-900">お問い合わせ</button>
+                    <a href="mailto:happystate.inc@gmail.com" className="hover:text-slate-900">お問い合わせ</a>
                 </div>
                 <p>&copy; 2026 LINE bot studio. All rights reserved.</p>
             </footer>
