@@ -3,7 +3,7 @@ export const config = { api: { bodyParser: false } };
 
 let cachedDb: any = null;
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: any, res: any): Promise<void> {
     // 1. DIAGNOSTICS
     if (req.method === 'GET') {
         let botStatus = "Providing uid/bid in URL will test DB connection.";
@@ -62,7 +62,7 @@ export default async function handler(req: any, res: any) {
 
         return res.status(200).send(`
             <div style="font-family: sans-serif; padding: 20px; line-height: 1.6; background: #fafafa; min-height: 100vh;">
-                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 2.4]</h1>
+                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 2.5]</h1>
                 <p>Function Status: <span style="background: #dfd; padding: 2px 6px; border-radius: 4px;">ALIVE</span></p>
                 <p>Service Account: ${process.env.FIREBASE_SERVICE_ACCOUNT ? (process.env.FIREBASE_SERVICE_ACCOUNT.trim().startsWith('{') ? '✅ Found (JSON)' : '⚠️ Found (Text only)') : '❌ Missing'}</p>
                 <hr>
