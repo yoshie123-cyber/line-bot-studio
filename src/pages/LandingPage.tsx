@@ -15,9 +15,9 @@ const LineChatAnimation = () => {
     ];
 
     return (
-        <div className="w-full max-w-[320px] mx-auto bg-[#071426] rounded-[2.5rem] border-[6px] border-slate-800 shadow-2xl overflow-hidden aspect-[9/16] relative flex flex-col">
+        <div className="w-full max-w-[280px] sm:max-w-[320px] mx-auto bg-[#071426] rounded-[2rem] sm:rounded-[2.5rem] border-[4px] sm:border-[6px] border-slate-800 shadow-2xl overflow-hidden aspect-[9/16] relative flex flex-col">
             {/* Header */}
-            <div className="pt-8 pb-3 px-6 bg-[#0b1d33]/90 backdrop-blur-md border-b border-white/5 flex items-center gap-3">
+            <div className="pt-6 sm:pt-8 pb-3 px-4 sm:px-6 bg-[#0b1d33]/90 backdrop-blur-md border-b border-white/5 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-500 to-blue-500 flex items-center justify-center text-xs text-white font-bold">AI</div>
                 <div>
                     <div className="text-[10px] font-bold text-white">AIアシスタント</div>
