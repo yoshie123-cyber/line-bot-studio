@@ -16,29 +16,29 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, acti
             <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <main className="lg:ml-64 min-h-screen">
-                <header className="sticky top-0 z-30 w-full glass border-b px-8 py-4 flex items-center justify-between">
-                    <h1 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-                        {activeTab === 'dashboard' ? 'ダッシュボード' :
+                <header className="sticky top-0 z-30 w-full glass border-b px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
+                    <h1 className="text-sm sm:text-lg font-bold text-slate-800 dark:text-slate-200 truncate">
+                        {activeTab === 'dashboard' ? 'ホーム' :
                             activeTab === 'bots' ? 'マイボット' :
                                 activeTab === 'create' ? 'ボット作成' :
                                     activeTab === 'support' ? 'サポート' : '設定'}
                     </h1>
-                    <div className="flex items-center gap-4">
-                        <div className="text-right hidden sm:block">
-                            <span className="block text-sm font-bold text-slate-800 dark:text-slate-200 leading-none mb-1">{user?.displayName}</span>
-                            <span className="block text-[10px] text-slate-400 font-mono">{user?.email} (ID: {user?.uid.slice(0, 6)}...)</span>
+                    <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                        <div className="text-right hidden xs:block">
+                            <span className="block text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-none mb-0.5 sm:mb-1 truncate max-w-[120px] sm:max-w-none">{user?.displayName}</span>
+                            <span className="block text-[8px] sm:text-[10px] text-slate-400 font-mono truncate max-w-[120px] sm:max-w-none">{user?.email} (ID: {user?.uid.slice(0, 4)}...)</span>
                         </div>
                         <button
                             onClick={logout}
-                            className="p-2 bg-slate-100 dark:bg-slate-900 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-xl transition-all group border border-slate-200 dark:border-slate-800"
+                            className="p-1.5 sm:p-2 bg-slate-100 dark:bg-slate-900 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-lg sm:rounded-xl transition-all group border border-slate-200 dark:border-slate-800"
                             title="ログアウト"
                         >
-                            <LogOut size={20} />
+                            <LogOut size={16} className="sm:w-5 sm:h-5" />
                         </button>
                     </div>
                 </header>
 
-                <div className="p-8 flex-1">
+                <div className="p-4 sm:p-8 flex-1">
                     {children}
                 </div>
 
