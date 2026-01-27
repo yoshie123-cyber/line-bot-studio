@@ -16,6 +16,7 @@ interface BotData {
     name: string;
     description: string;
     color: string;
+    avatarUrl?: string;
     geminiApiKey?: string;
     lineConfig?: {
         channelSecret: string;
@@ -55,6 +56,8 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
     const [systemPrompt, setSystemPrompt] = useState(bot.aiConfig?.systemPrompt || '');
     const [model, setModel] = useState(bot.aiConfig?.model || 'Gemini 1.5 Flash (無料枠)');
     const [temperature, setTemperature] = useState(bot.aiConfig?.temperature || 0.7);
+    const [avatarUrl, setAvatarUrl] = useState(bot.avatarUrl || '');
+    const [isSyncing, setIsSyncing] = useState(false);
 
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
     const [copyStatus, setCopyStatus] = useState(false);
@@ -118,7 +121,8 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                     systemPrompt,
                     model,
                     temperature
-                }
+                },
+                avatarUrl
             });
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus('idle'), 3000);
@@ -215,6 +219,64 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
                                     />
+                                </div>
+                                <div className="p-6 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800">
+                                    <label className="block text-sm font-semibold mb-4">ボットアイコン</label>
+                                    <div className="flex items-center gap-6">
+                                        <div className={cn(
+                                            "w-20 h-20 rounded-2xl bg-gradient-to-tr flex items-center justify-center text-white font-bold text-3xl uppercase overflow-hidden shadow-inner",
+                                            !avatarUrl && bot.color
+                                        )}>
+                                            {avatarUrl ? (
+                                                <img src={avatarUrl} alt="Icon Preview" className="w-full h-full object-cover" />
+                                            ) : (
+                                                name[0]
+                                            )}
+                                        </div>
+                                        <div className="flex-1 space-y-3">
+                                            <input
+                                                type="text"
+                                                placeholder="アイコンのURLを直接入力"
+                                                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary-500/20"
+                                                value={avatarUrl}
+                                                onChange={(e) => setAvatarUrl(e.target.value)}
+                                            />
+                                            <button
+                                                onClick={async () => {
+                                                    if (!channelAccessToken) {
+                                                        alert("公式アカウント情報を取得するには、先に「LINE連携」タブでアクセストークンを入力してください。");
+                                                        return;
+                                                    }
+                                                    setIsSyncing(true);
+                                                    try {
+                                                        const res = await fetch(`/api/line-info?token=${encodeURIComponent(channelAccessToken)}`);
+                                                        const data = await res.json();
+                                                        if (data.pictureUrl) {
+                                                            setAvatarUrl(data.pictureUrl);
+                                                            if (data.displayName && !name.includes(data.displayName)) {
+                                                                setName(data.displayName);
+                                                            }
+                                                        } else {
+                                                            alert("アイコンが設定されていないか、トークンが無効です。");
+                                                        }
+                                                    } catch (e) {
+                                                        alert("取得に失敗しました。アクセストークンを確認してください。");
+                                                    } finally {
+                                                        setIsSyncing(false);
+                                                    }
+                                                }}
+                                                disabled={isSyncing}
+                                                className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                                            >
+                                                {isSyncing ? (
+                                                    <div className="w-3 h-3 border-2 border-primary-600/30 border-t-primary-600 rounded-full animate-spin" />
+                                                ) : (
+                                                    <Globe size={14} />
+                                                )}
+                                                <span>LINE公式アカウントからアイコンと名前を取得</span>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -354,8 +416,12 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                         {geminiApiKey ? 'Live AI' : 'Simulated'}
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold text-xs uppercase">
-                                            {name[0]}
+                                        <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold text-xs uppercase overflow-hidden">
+                                            {avatarUrl ? (
+                                                <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                name[0]
+                                            )}
                                         </div>
                                         <div>
                                             <h4 className="text-white text-sm font-bold">{name}</h4>

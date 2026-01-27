@@ -23,6 +23,7 @@ interface BotData {
   name: string;
   description: string;
   color: string;
+  avatarUrl?: string;
   geminiApiKey?: string;
   lineConfig?: {
     channelSecret: string;
@@ -232,10 +233,14 @@ function App() {
                 >
                   <div className="flex items-center gap-4 mb-4">
                     <div className={cn(
-                      "w-12 h-12 rounded-xl bg-gradient-to-tr flex items-center justify-center text-white font-bold text-xl uppercase",
-                      bot.color
+                      "w-12 h-12 rounded-xl bg-gradient-to-tr flex items-center justify-center text-white font-bold text-xl uppercase overflow-hidden",
+                      !bot.avatarUrl && bot.color
                     )}>
-                      {bot.name[0]}
+                      {bot.avatarUrl ? (
+                        <img src={bot.avatarUrl} alt={bot.name} className="w-full h-full object-cover" />
+                      ) : (
+                        bot.name[0]
+                      )}
                     </div>
                     <div>
                       <h4 className="font-bold text-lg">{bot.name}</h4>
