@@ -377,6 +377,17 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
+                                        <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-300 mb-2 flex items-center gap-1.5">
+                                            <Sparkles size={12} />
+                                            新機能：マルチモーダル対応（画像・音声・PDF）
+                                        </h4>
+                                        <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                            ユーザーがLINEに送った **写真、音声、PDF** をAIが直接解析できるようになりました。<br />
+                                            <span className="font-bold text-emerald-600">例：「写真を見てレシピを提案して」「この音声を要約して」</span>といった指示が、プロンプトの設定だけで可能になります。
+                                        </p>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -386,8 +397,9 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                             value={model}
                                             onChange={(e) => setModel(e.target.value)}
                                         >
-                                            <option>Gemini 1.5 Flash (無料枠)</option>
-                                            <option>Gemini 1.5 Pro (高性能)</option>
+                                            <option>gemini-2.0-flash (推奨・高速)</option>
+                                            <option>gemini-1.5-flash-latest</option>
+                                            <option>gemini-pro-latest</option>
                                         </select>
                                     </div>
                                     <div>

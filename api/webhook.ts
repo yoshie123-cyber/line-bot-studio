@@ -168,11 +168,55 @@ export default async function handler(req: any, res: any): Promise<void> {
         const client = new lineSdk.Client({ channelAccessToken, channelSecret });
 
         const results = await Promise.all(events.map(async (event: any) => {
-            if (event?.type !== 'message' || event?.message?.type !== 'text') return null;
-            console.log(`[Message] From ${event.source?.userId}: ${event.message.text}`);
+            if (event?.type !== 'message') return null;
+
+            const message = event.message;
+            let userPrompt = "";
+            let mediaPart: any = null;
+
+            if (message.type === 'text') {
+                userPrompt = message.text;
+                console.log(`[Message:Text] From ${event.source?.userId}: ${userPrompt}`);
+            } else if (['image', 'audio', 'video', 'file'].includes(message.type)) {
+                console.log(`[Message:${message.type}] From ${event.source?.userId}`);
+                try {
+                    // Download media as buffer
+                    const stream = await client.getMessageContent(message.id);
+                    const buffer = await new Promise<Buffer>((resolve, reject) => {
+                        const chunks: any[] = [];
+                        stream.on('data', (chunk) => chunks.push(chunk));
+                        stream.on('error', reject);
+                        stream.on('end', () => resolve(Buffer.concat(chunks)));
+                    });
+
+                    let mimeType = '';
+                    if (message.type === 'image') mimeType = 'image/jpeg';
+                    else if (message.type === 'audio') mimeType = 'audio/m4a'; // LINE audio usually m4a
+                    else if (message.type === 'video') mimeType = 'video/mp4';
+                    else if (message.type === 'file') {
+                        // For files, we need to be more careful. PDF is common.
+                        const ext = message.fileName?.toLowerCase().split('.').pop();
+                        if (ext === 'pdf') mimeType = 'application/pdf';
+                        else mimeType = 'application/octet-stream';
+                    }
+
+                    mediaPart = {
+                        inlineData: {
+                            data: buffer.toString('base64'),
+                            mimeType
+                        }
+                    };
+                    userPrompt = message.text || "このファイルを解析して、システムプロンプトに従って回答してください。";
+                } catch (dlErr: any) {
+                    console.error('[MEDIA_DL_ERR]', dlErr.message);
+                    userPrompt = `(メディアの取得に失敗しました: ${dlErr.message})`;
+                }
+            } else {
+                return null;
+            }
 
             try {
-                const responseText = await getGeminiResponse(geminiApiKey, aiConfig?.systemPrompt || "", event.message.text);
+                const responseText = await getGeminiResponse(geminiApiKey, aiConfig?.systemPrompt || "", userPrompt, mediaPart);
                 const flexMessage = parseRichMessage(responseText);
 
                 if (flexMessage) {
@@ -193,28 +237,33 @@ export default async function handler(req: any, res: any): Promise<void> {
     }
 }
 
-async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string) {
+async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any) {
     const cleanKey = apiKey.trim();
-    // Use models confirmed available in diagnostic:
-    const models = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash-latest', 'gemini-pro-latest'];
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-pro-latest'];
     let lastError = '';
 
     for (const model of models) {
         try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+
+            const parts: any[] = [{ text: `System: ${systemPrompt}\n\nUser: ${userMessage}` }];
+            if (mediaPart) {
+                parts.push(mediaPart);
+            }
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: `System: ${systemPrompt}\n\nUser: ${userMessage}` }] }],
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
+                    contents: [{ parts }],
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
                 })
             });
             const data: any = await response.json();
             if (response.ok) {
                 return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No AI reply";
             }
-            lastError = data?.error?.message || "Unknown error";
+            lastError = data?.error?.message || JSON.stringify(data);
             console.warn(`[Gemini] ${model} failed: ${lastError}`);
         } catch (e: any) {
             lastError = e.message;
