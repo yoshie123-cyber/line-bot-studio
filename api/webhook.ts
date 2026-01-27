@@ -173,6 +173,11 @@ export default async function handler(req: any, res: any): Promise<void> {
 
             try {
                 const responseText = await getGeminiResponse(geminiApiKey, aiConfig?.systemPrompt || "", event.message.text);
+                const flexMessage = parseRichMessage(responseText);
+
+                if (flexMessage) {
+                    return await client.replyMessage(event.replyToken, flexMessage);
+                }
                 return await client.replyMessage(event.replyToken, { type: 'text', text: responseText });
             } catch (err: any) {
                 console.error('[EVENT_ERROR]', err.message);
@@ -216,4 +221,82 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
         }
     }
     throw new Error(`All models failed. Last error: ${lastError}`);
+}
+
+/**
+ * Parses AI response text for shorthands like [LINK:label|url] or [BUTTON:label|text]
+ * and converts them into a LINE Flex Message.
+ */
+function parseRichMessage(text: string): any {
+    const linkRegex = /\[LINK:([^|]+)\|([^\]]+)\]/g;
+    const buttonRegex = /\[BUTTON:([^|]+)\|([^\]]+)\]/g;
+
+    const links = Array.from(text.matchAll(linkRegex));
+    const buttons = Array.from(text.matchAll(buttonRegex));
+
+    if (links.length === 0 && buttons.length === 0) return null;
+
+    // Clean text: remove the tags
+    let cleanText = text.replace(linkRegex, '').replace(buttonRegex, '').trim();
+    if (!cleanText) cleanText = "以下のメニューをご確認ください：";
+
+    const footerContents: any[] = [];
+
+    // Add Links
+    links.forEach(match => {
+        footerContents.push({
+            type: 'button',
+            action: {
+                type: 'uri',
+                label: match[1],
+                uri: match[2]
+            },
+            style: 'primary',
+            color: '#00b900',
+            margin: 'sm',
+            height: 'sm'
+        });
+    });
+
+    // Add Buttons
+    buttons.forEach(match => {
+        footerContents.push({
+            type: 'button',
+            action: {
+                type: 'message',
+                label: match[1],
+                text: match[2]
+            },
+            style: 'secondary',
+            margin: 'sm',
+            height: 'sm'
+        });
+    });
+
+    return {
+        type: 'flex',
+        altText: cleanText,
+        contents: {
+            type: 'bubble',
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                contents: [
+                    {
+                        type: 'text',
+                        text: cleanText,
+                        wrap: true,
+                        size: 'md',
+                        color: '#333333'
+                    }
+                ]
+            },
+            footer: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'sm',
+                contents: footerContents
+            }
+        }
+    };
 }

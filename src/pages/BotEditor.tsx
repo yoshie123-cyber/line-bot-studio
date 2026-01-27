@@ -358,6 +358,25 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                         value={systemPrompt}
                                         onChange={(e) => setSystemPrompt(e.target.value)}
                                     />
+                                    <div className="mt-3 p-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800 rounded-xl">
+                                        <h4 className="text-xs font-bold text-primary-700 dark:text-primary-300 mb-2 flex items-center gap-1.5">
+                                            <Globe size={12} />
+                                            便利：リッチなメッセージ（ボタン・リンク）の送り方
+                                        </h4>
+                                        <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
+                                            以下の「合言葉」をプロンプトに含めるようAIに指示すると、LINE上で綺麗なボタンが表示されます。
+                                        </p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
+                                                <p className="text-[9px] font-bold text-slate-400 mb-1">🔗 リンクボタン</p>
+                                                <code className="text-[10px] text-primary-600 font-mono">[LINK:名前|URL]</code>
+                                            </div>
+                                            <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700">
+                                                <p className="text-[9px] font-bold text-slate-400 mb-1">🔘 返信ボタン</p>
+                                                <code className="text-[10px] text-primary-600 font-mono">[BUTTON:名前|送信内容]</code>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
