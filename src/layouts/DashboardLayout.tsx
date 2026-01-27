@@ -25,7 +25,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, acti
                                 activeTab === 'bots' ? 'マイボット' :
                                     activeTab === 'create' ? 'ボット作成' :
                                         activeTab === 'support' ? 'サポート' : '設定'}
-                            <span className="ml-2 text-[8px] font-normal text-slate-300">v1.5.3-quota-diagnose</span>
+                            <span className="ml-2 text-[8px] font-normal text-slate-300">v1.5.4-key-hint</span>
                         </h1>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4 shrink-0">

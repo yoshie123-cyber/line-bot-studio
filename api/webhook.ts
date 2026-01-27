@@ -241,7 +241,12 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
     const cleanKey = apiKey.trim();
 
     // Clean and normalize the preferred model name (remove UI annotations like "(推奨)")
-    const selectedModel = preferredModel?.split(' ')[0]?.toLowerCase() || 'gemini-1.5-flash-latest';
+    // Extract valid model ID using regex (e.g., "Gemini 1.5 Flash (推奨)" -> "gemini-1.5-flash")
+    let selectedModel = 'gemini-1.5-flash-latest';
+    if (preferredModel) {
+        const match = preferredModel.toLowerCase().match(/gemini-[a-z0-9\.-]+/);
+        if (match) selectedModel = match[0];
+    }
 
     // Construct the fallback list: Preferred model first, then stable fallbacks
     // Note: 1.5-flash-8b is excellent for high-volume free-tier usage.
@@ -290,11 +295,12 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
     }
 
     // Final error reporting
+    const keyHint = cleanKey.length >= 4 ? `(Key: ...${cleanKey.slice(-4)})` : '(Key: Invalid)';
     if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
-        throw new Error(`[Google AI Quota] 試行した全てのモデル (${modelQueue.join(', ')}) で制限に達しました。特に画像解析は無料枠の制限が非常に厳しいため、別のGoogleアカウントで新しいAPIキーを作成して試すことをお勧めします。`);
+        throw new Error(`[Google AI Quota] 全ての有力モデル (${modelQueue.join(', ')}) で制限に達しました。${keyHint}\n\n【解決策】画像解析は無料枠の制限が非常に厳しいため、別のGoogleアカウントで「新しいプロジェクト」を作成し、新しいAPIキーを発行して試すことを強くお勧めします。`);
     }
 
-    throw new Error(`AIの応答に失敗しました。(Last error: ${lastError.substring(0, 50)}...)`);
+    throw new Error(`AIの応答に失敗しました。${keyHint} (Last error: ${lastError.substring(0, 50)}...)`);
 }
 
 /**
