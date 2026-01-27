@@ -264,7 +264,7 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
                 parts.push(mediaPart);
             }
 
-            const response = await fetch(url, {
+            const sendRequest = () => fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -272,6 +272,15 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
                     generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
                 })
             });
+
+            let response = await sendRequest();
+
+            // Simple retry for 429 (Rate Limit)
+            if (response.status === 429) {
+                console.warn(`[429 Retry] Waiting 1.5s for ${model}...`);
+                await new Promise(r => setTimeout(r, 1500));
+                response = await sendRequest();
+            }
 
             const data: any = await response.json();
 
@@ -297,7 +306,7 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
     // Final error reporting
     const keyHint = cleanKey.length >= 4 ? `(Key: ...${cleanKey.slice(-4)})` : '(Key: Invalid)';
     if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
-        throw new Error(`[Google AI Quota] 全ての有力モデル (${modelQueue.join(', ')}) で制限に達しました。${keyHint}\n\n【解決策】画像解析は無料枠の制限が非常に厳しいため、別のGoogleアカウントで「新しいプロジェクト」を作成し、新しいAPIキーを発行して試すことを強くお勧めします。`);
+        throw new Error(`[Google AI Quota] 全ての有力モデル (${modelQueue.join(', ')}) で制限に達しました。${keyHint}\n\n【詳細】${lastError.substring(0, 100)}...`);
     }
 
     throw new Error(`AIの応答に失敗しました。${keyHint} (Last error: ${lastError.substring(0, 50)}...)`);
