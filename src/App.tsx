@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { PlusCircle, Bot as BotIcon } from 'lucide-react';
 import { BotEditor } from './pages/BotEditor';
-import { Login } from './pages/Login';
+import { LandingPage } from './pages/LandingPage';
 import { Support } from './pages/Support';
 import { useAuth } from './context/AuthContext';
 import { cn } from './lib/utils';
@@ -104,7 +104,7 @@ function App() {
   }
 
   if (!user) {
-    return <Login />;
+    return <LandingPage />;
   }
 
   const handleTabChange = (tab: string) => {
