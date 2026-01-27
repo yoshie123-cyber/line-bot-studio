@@ -62,7 +62,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 
         return res.status(200).send(`
             <div style="font-family: sans-serif; padding: 20px; line-height: 1.6; background: #fafafa; min-height: 100vh;">
-                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 2.5]</h1>
+                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 2.6]</h1>
                 <p>Function Status: <span style="background: #dfd; padding: 2px 6px; border-radius: 4px;">ALIVE</span></p>
                 <p>Service Account: ${process.env.FIREBASE_SERVICE_ACCOUNT ? (process.env.FIREBASE_SERVICE_ACCOUNT.trim().startsWith('{') ? '✅ Found (JSON)' : '⚠️ Found (Text only)') : '❌ Missing'}</p>
                 <hr>
@@ -169,16 +169,31 @@ export default async function handler(req: any, res: any): Promise<void> {
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: `System: ${systemPrompt}\n\nUser: ${userMessage}` }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
-        })
-    });
-    const data: any = await response.json();
-    if (response.ok) return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No AI reply";
-    throw new Error(data?.error?.message || "Gemini API Failure");
+    const cleanKey = apiKey.trim();
+    // Try flash-latest first, then fallback to pro
+    const models = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro'];
+    let lastError = '';
+
+    for (const model of models) {
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `System: ${systemPrompt}\n\nUser: ${userMessage}` }] }],
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 800 }
+                })
+            });
+            const data: any = await response.json();
+            if (response.ok) {
+                return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No AI reply";
+            }
+            lastError = data?.error?.message || "Unknown error";
+            console.warn(`[Gemini] ${model} failed: ${lastError}`);
+        } catch (e: any) {
+            lastError = e.message;
+        }
+    }
+    throw new Error(`All models failed. Last error: ${lastError}`);
 }
