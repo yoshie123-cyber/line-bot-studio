@@ -174,7 +174,15 @@ function App() {
     }
 
     if (currentBot) {
-      return <BotEditor bot={currentBot} userId={user.uid} onBack={handleBack} onSave={handleSaveBot} />;
+      return (
+        <BotEditor
+          key={currentBot.id}
+          bot={currentBot}
+          userId={user.uid}
+          onBack={handleBack}
+          onSave={handleSaveBot}
+        />
+      );
     }
 
     return (
