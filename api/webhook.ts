@@ -239,7 +239,9 @@ export default async function handler(req: any, res: any): Promise<void> {
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any) {
     const cleanKey = apiKey.trim();
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-pro-latest'];
+    // Prioritize 1.5 Flash for best Free Tier compatibility (especially with images).
+    // gemini-2.0-flash is experimental and may have stricter regional/billing quotas.
+    const models = ['gemini-1.5-flash-latest', 'gemini-2.0-flash', 'gemini-pro-latest'];
     let lastError = '';
 
     for (const model of models) {
@@ -264,12 +266,19 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
                 return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No AI reply";
             }
             lastError = data?.error?.message || JSON.stringify(data);
+
+            // If it's a quota or rate limit error, provide clear Japanese instructions
+            if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
+                throw new Error(`[Google AI Quota] 無料枠の制限に達しました。しばらく待つか、別のAPIキーを試してください。(${model})`);
+            }
+
             console.warn(`[Gemini] ${model} failed: ${lastError}`);
         } catch (e: any) {
+            if (e.message.includes('[Google AI Quota]')) throw e;
             lastError = e.message;
         }
     }
-    throw new Error(`All models failed. Last error: ${lastError}`);
+    throw new Error(`AIの応答に失敗しました。少し時間を置いて再度お試しください。 (Last error: ${lastError})`);
 }
 
 /**

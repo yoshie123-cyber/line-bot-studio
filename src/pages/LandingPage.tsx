@@ -209,11 +209,12 @@ export const LandingPage = () => {
 
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9, rotate: 2 }}
-                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                        whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
+                        viewport={{ once: true }}
                         transition={{ delay: 0.4, duration: 0.8 }}
-                        className="flex-1 relative w-full"
+                        className="flex-1 relative w-full mt-12 lg:mt-0"
                     >
-                        <div className="absolute inset-0 bg-primary-400/20 blur-[100px] rounded-full" />
+                        <div className="absolute inset-0 bg-primary-400/20 blur-[60px] sm:blur-[100px] rounded-full" />
                         <LineChatAnimation />
                     </motion.div>
                 </div>
