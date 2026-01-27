@@ -291,7 +291,7 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
 
     // Final error reporting
     if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
-        throw new Error(`[Google AI Quota] 無料枠の制限に達しました。しばらく待つか、別のAPIキー（Googleアカウント）を試してください。`);
+        throw new Error(`[Google AI Quota] 試行した全てのモデル (${modelQueue.join(', ')}) で制限に達しました。特に画像解析は無料枠の制限が非常に厳しいため、別のGoogleアカウントで新しいAPIキーを作成して試すことをお勧めします。`);
     }
 
     throw new Error(`AIの応答に失敗しました。(Last error: ${lastError.substring(0, 50)}...)`);
