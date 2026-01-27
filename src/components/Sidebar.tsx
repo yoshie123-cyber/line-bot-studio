@@ -40,12 +40,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                 !isOpen && "-translate-x-full"
             )}>
                 <div className="flex flex-col h-full p-4">
-                    <div className="flex items-center gap-3 px-2 py-6">
-                        <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold">
+                    <button
+                        onClick={() => setActiveTab('dashboard')}
+                        className="flex items-center gap-3 px-2 py-6 hover:opacity-80 transition-opacity text-left w-full"
+                    >
+                        <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold shadow-lg shadow-primary-500/20">
                             LB
                         </div>
                         <span className="text-xl font-bold gradient-text">LINEボットスタジオ</span>
-                    </div>
+                    </button>
 
                     <nav className="flex-1 space-y-1 mt-4">
                         {menuItems.map((item) => (
@@ -55,12 +58,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                                 className={cn(
                                     "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
                                     activeTab === item.id
-                                        ? "bg-primary-500/10 text-primary-600 font-medium"
+                                        ? "bg-primary-500/10 text-primary-600 font-bold shadow-sm"
                                         : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                 )}
                             >
                                 <item.icon size={20} className={cn(activeTab === item.id && "text-primary-600")} />
-                                <span>{item.label}</span>
+                                <span>{item.id === 'dashboard' ? 'ホーム' : item.label}</span>
                             </button>
                         ))}
                     </nav>
