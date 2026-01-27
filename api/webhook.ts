@@ -216,7 +216,7 @@ export default async function handler(req: any, res: any): Promise<void> {
             }
 
             try {
-                const responseText = await getGeminiResponse(geminiApiKey, aiConfig?.systemPrompt || "", userPrompt, mediaPart);
+                const responseText = await getGeminiResponse(geminiApiKey, aiConfig?.systemPrompt || "", userPrompt, mediaPart, aiConfig?.model);
                 const flexMessage = parseRichMessage(responseText);
 
                 if (flexMessage) {
@@ -237,14 +237,20 @@ export default async function handler(req: any, res: any): Promise<void> {
     }
 }
 
-async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any) {
+async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string) {
     const cleanKey = apiKey.trim();
-    // Prioritize 1.5 Flash for best Free Tier compatibility (especially with images).
-    // gemini-2.0-flash is experimental and may have stricter regional/billing quotas.
-    const models = ['gemini-1.5-flash-latest', 'gemini-2.0-flash', 'gemini-pro-latest'];
+
+    // Clean and normalize the preferred model name (remove UI annotations like "(推奨)")
+    const selectedModel = preferredModel?.split(' ')[0]?.toLowerCase() || 'gemini-1.5-flash-latest';
+
+    // Construct the fallback list: Preferred model first, then stable fallbacks
+    // Note: 1.5-flash-8b is excellent for high-volume free-tier usage.
+    const fallbackModels = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash', 'gemini-pro-latest'];
+    const modelQueue = Array.from(new Set([selectedModel, ...fallbackModels]));
+
     let lastError = '';
 
-    for (const model of models) {
+    for (const model of modelQueue) {
         try {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
 
@@ -261,24 +267,34 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
                     generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
                 })
             });
+
             const data: any = await response.json();
+
             if (response.ok) {
                 return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No AI reply";
             }
+
             lastError = data?.error?.message || JSON.stringify(data);
 
-            // If it's a quota or rate limit error, provide clear Japanese instructions
+            // Critical Quota/Rate Limit check: try next model in queue
             if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
-                throw new Error(`[Google AI Quota] 無料枠の制限に達しました。しばらく待つか、別のAPIキーを試してください。(${model})`);
+                console.warn(`[Quota Hit] ${model}: ${lastError}`);
+                continue;
             }
 
-            console.warn(`[Gemini] ${model} failed: ${lastError}`);
+            console.warn(`[Gemini Error] ${model} failed: ${lastError}`);
         } catch (e: any) {
-            if (e.message.includes('[Google AI Quota]')) throw e;
             lastError = e.message;
+            console.error(`[Gemini Fatal] ${model}: ${e.message}`);
         }
     }
-    throw new Error(`AIの応答に失敗しました。少し時間を置いて再度お試しください。 (Last error: ${lastError})`);
+
+    // Final error reporting
+    if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
+        throw new Error(`[Google AI Quota] 無料枠の制限に達しました。しばらく待つか、別のAPIキー（Googleアカウント）を試してください。`);
+    }
+
+    throw new Error(`AIの応答に失敗しました。(Last error: ${lastError.substring(0, 50)}...)`);
 }
 
 /**
