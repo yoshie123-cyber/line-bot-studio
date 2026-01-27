@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Zap, MessageSquare, ChevronRight, ExternalLink } from 'lucide-react';
+import { Sparkles, Zap, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
@@ -147,23 +147,13 @@ export const LandingPage = () => {
                                 transition={{ delay: idx * 0.1 }}
                                 className="bg-white rounded-[2rem] p-8 shadow-xl shadow-slate-200/50 border border-white relative group"
                             >
-                                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-tr ${bot.color} flex items-center justify-center text-3xl mb-6 shadow-lg shadow-primary-500/10`}>
+                                <div className={`w-16 h-16 rounded-full bg-gradient-to-tr ${bot.color} flex items-center justify-center text-3xl mb-6 shadow-lg shadow-primary-500/10`}>
                                     {bot.icon}
                                 </div>
                                 <h3 className="text-xl font-bold mb-3">{bot.name}</h3>
-                                <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+                                <p className="text-slate-500 text-sm leading-relaxed mb-6">
                                     {bot.description}
                                 </p>
-                                <div className="flex items-center justify-between mt-auto pt-6 border-t border-slate-50">
-                                    <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold uppercase tracking-wider">
-                                        <MessageSquare size={14} />
-                                        {bot.users} Users
-                                    </div>
-                                    <button className="flex items-center gap-1.5 text-primary-600 font-bold text-sm hover:underline">
-                                        LINEで追加
-                                        <ExternalLink size={14} />
-                                    </button>
-                                </div>
                             </motion.div>
                         ))}
                     </div>
