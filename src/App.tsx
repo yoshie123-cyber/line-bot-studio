@@ -40,7 +40,6 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [editingBotId, setEditingBotId] = useState<string | null>(null);
   const [bots, setBots] = useState<BotData[]>([]);
-  const [isReady, setIsReady] = useState(false);
 
   // Firestore standard loading
   useEffect(() => {
@@ -52,12 +51,10 @@ function App() {
           botsData.push({ id: doc.id, ...doc.data() } as BotData);
         });
         setBots(botsData);
-        setIsReady(true);
       });
       return () => unsubscribe();
     } else if (!authLoading && !user) {
       setBots([]);
-      setIsReady(true);
     }
   }, [user, authLoading]);
 
@@ -68,12 +65,12 @@ function App() {
     }
   };
 
-  if (authLoading || !isReady) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-[#071426] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm font-medium animate-pulse">データを読み込み中...</p>
+          <p className="text-slate-500 text-sm font-medium animate-pulse">認証中...</p>
         </div>
       </div>
     );
@@ -122,10 +119,9 @@ function App() {
     if (!user) return;
     try {
       await setDoc(doc(db, "users", user.uid, "bots", updatedBot.id), updatedBot, { merge: true });
-      alert("クラウドに保存しました。");
     } catch (e) {
       console.error("Failed to save bot:", e);
-      alert("保存に失敗しました。詳細な権限設定を確認してください。");
+      throw e; // Throw to be caught by BotEditor
     }
   };
 
