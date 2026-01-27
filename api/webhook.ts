@@ -44,12 +44,32 @@ export default async function handler(req: any, res: any): Promise<void> {
                     const data = botDoc.data() || {};
                     const hasLine = !!(data.lineConfig?.channelAccessToken && data.lineConfig?.channelSecret);
                     const hasGemini = !!data.geminiApiKey;
+
+                    let modelList = "<i>Click test to fetch models...</i>";
+                    if (hasGemini) {
+                        try {
+                            const mRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${data.geminiApiKey.trim()}`);
+                            const mData: any = await mRes.json();
+                            if (mRes.ok) {
+                                const names = mData.models?.map((m: any) => m.name.replace('models/', '')) || [];
+                                modelList = names.length > 0 ? names.join(', ') : "No models found";
+                            } else {
+                                modelList = `<span style="color:red;">Error: ${mData.error?.message || 'Unauthorized'}</span>`;
+                            }
+                        } catch (e: any) {
+                            modelList = `Fetch failed: ${e.message}`;
+                        }
+                    }
+
                     botStatus = `
                         <div style="background: #fff; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-top: 10px;">
                             <h3 style="margin-top:0;">Bot: ${data.name || 'Unnamed'}</h3>
                             <p>Database: ✅ Connected</p>
                             <p>LINE Config: ${hasLine ? '✅ Valid' : '❌ Incomplete'}</p>
                             <p>Gemini API: ${hasGemini ? '✅ Set' : '❌ Missing'}</p>
+                            <div style="font-size: 11px; color: #555; background: #eee; padding: 10px; border-radius: 4px; border: 1px solid #ccc; max-height: 100px; overflow-y: auto;">
+                                <b>Available Models:</b><br>${modelList}
+                            </div>
                         </div>
                     `;
                 } else {
@@ -62,7 +82,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 
         return res.status(200).send(`
             <div style="font-family: sans-serif; padding: 20px; line-height: 1.6; background: #fafafa; min-height: 100vh;">
-                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 2.6]</h1>
+                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 2.7]</h1>
                 <p>Function Status: <span style="background: #dfd; padding: 2px 6px; border-radius: 4px;">ALIVE</span></p>
                 <p>Service Account: ${process.env.FIREBASE_SERVICE_ACCOUNT ? (process.env.FIREBASE_SERVICE_ACCOUNT.trim().startsWith('{') ? '✅ Found (JSON)' : '⚠️ Found (Text only)') : '❌ Missing'}</p>
                 <hr>
