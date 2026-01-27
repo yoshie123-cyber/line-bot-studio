@@ -24,15 +24,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, acti
                                     activeTab === 'support' ? 'サポート' : '設定'}
                     </h1>
                     <div className="flex items-center gap-4">
-                        <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{user?.displayName}</span>
+                        <div className="text-right hidden sm:block">
+                            <span className="block text-sm font-bold text-slate-800 dark:text-slate-200 leading-none mb-1">{user?.displayName}</span>
+                            <span className="block text-[10px] text-slate-400 font-mono">{user?.email} (ID: {user?.uid.slice(0, 6)}...)</span>
+                        </div>
                         <button
                             onClick={logout}
-                            className="p-2 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-lg transition-colors group relative"
+                            className="p-2 bg-slate-100 dark:bg-slate-900 hover:bg-rose-500/10 text-slate-400 hover:text-rose-500 rounded-xl transition-all group border border-slate-200 dark:border-slate-800"
                             title="ログアウト"
                         >
                             <LogOut size={20} />
                         </button>
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-500 to-blue-600 shadow-md" />
                     </div>
                 </header>
 
