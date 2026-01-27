@@ -1,7 +1,85 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Zap, ChevronRight } from 'lucide-react';
+import { Sparkles, Zap, ChevronRight, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
+import { cn } from '../lib/utils';
+
+const LineChatAnimation = () => {
+    const messages = [
+        { type: 'user', text: '冷蔵庫の写真を送るから、レシピを考えて！', delay: 0 },
+        { type: 'bot', text: '承知いたしました！お写真を拝見します。', delay: 1.5 },
+        { type: 'user', img: '🥬🥩', text: '（写真を送信しました）', delay: 3 },
+        { type: 'bot', text: 'ありがとうございます。豚肉、キャベツ、ピーマンがありますね！それなら「回鍋肉」はいかがでしょうか？作り方もお教えできます。', delay: 5 },
+        { type: 'user', text: 'いいですね！あと、明日の19時に予約を入れたいです。', delay: 7.5 },
+        { type: 'bot', text: '承知いたしました。明日の19時に1名様でご予約を承りました！', delay: 9 },
+    ];
+
+    return (
+        <div className="w-full max-w-[320px] mx-auto bg-[#071426] rounded-[2.5rem] border-[6px] border-slate-800 shadow-2xl overflow-hidden aspect-[9/16] relative flex flex-col">
+            {/* Header */}
+            <div className="pt-8 pb-3 px-6 bg-[#0b1d33]/90 backdrop-blur-md border-b border-white/5 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-500 to-blue-500 flex items-center justify-center text-xs text-white font-bold">AI</div>
+                <div>
+                    <div className="text-[10px] font-bold text-white">AIアシスタント</div>
+                    <div className="text-[8px] text-emerald-400 flex items-center gap-1">
+                        <span className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
+                        応答可能
+                    </div>
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-4 flex flex-col gap-4 overflow-hidden pt-6">
+                {messages.map((msg, i) => (
+                    <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: msg.type === 'user' ? 20 : -20, y: 10 }}
+                        animate={{ opacity: 1, x: 0, y: 0 }}
+                        transition={{ delay: msg.delay, duration: 0.5 }}
+                        className={cn(
+                            "flex flex-col gap-1 max-w-[85%]",
+                            msg.type === 'user' ? "ml-auto items-end" : "mr-auto items-start"
+                        )}
+                    >
+                        {msg.img && (
+                            <div className="w-24 h-24 rounded-2xl bg-slate-800 flex items-center justify-center text-4xl mb-1 border border-white/10">
+                                {msg.img}
+                            </div>
+                        )}
+                        <div className={cn(
+                            "px-4 py-2.5 rounded-2xl text-[11px] leading-relaxed shadow-sm",
+                            msg.type === 'user'
+                                ? "bg-primary-600 text-white rounded-tr-none"
+                                : "bg-white/10 text-slate-100 border border-white/5 rounded-tl-none"
+                        )}>
+                            {msg.text}
+                        </div>
+                    </motion.div>
+                ))}
+
+                {/* Typing indicator */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ delay: 11, duration: 2, repeat: Infinity }}
+                    className="mr-auto px-4 py-2.5 bg-white/5 rounded-2xl text-[10px] text-slate-400 italic"
+                >
+                    AIが考え中...
+                </motion.div>
+            </div>
+
+            {/* Input Bar */}
+            <div className="p-4 bg-slate-800/50 border-t border-white/5 flex gap-2">
+                <div className="flex-1 h-8 bg-white/5 rounded-full px-4 flex items-center text-[10px] text-slate-500">
+                    メッセージを入力...
+                </div>
+                <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white">
+                    <Send size={14} />
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const FEATURED_BOTS = [
     {
@@ -69,62 +147,74 @@ export const LandingPage = () => {
             <section className="relative pt-32 pb-20 px-6 overflow-hidden">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] from-primary-50/50 to-transparent -z-10" />
 
-                <div className="max-w-7xl mx-auto text-center">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-600 text-xs font-bold mb-8 border border-blue-100"
-                    >
-                        <Sparkles size={14} />
-                        最新のAIエンジン搭載。ビジネスの自動化をここから。
-                    </motion.div>
-
-                    <motion.h1
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="text-5xl sm:text-7xl font-black tracking-tight text-slate-900 mb-8 leading-[1.1]"
-                    >
-                        誰でも、数分で。<br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-blue-600">魔法のようなLINEボット</span>を。
-                    </motion.h1>
-
-                    <motion.p
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="text-lg text-slate-600 max-w-2xl mx-auto mb-12 leading-relaxed"
-                    >
-                        プログラミングは不要。AIの性格を入力するだけで、<br />
-                        24時間365日働くあなた専属のアシスタントが完成します。
-                    </motion.p>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="flex flex-col sm:flex-row items-center justify-center gap-4"
-                    >
-                        <button
-                            onClick={handleStart}
-                            disabled={isLoginLoading}
-                            className="w-full sm:w-auto px-8 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-xl shadow-primary-500/25 flex items-center justify-center gap-2 group"
+                <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
+                    <div className="flex-1 text-center lg:text-left">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-600 text-xs font-bold mb-8 border border-blue-100"
                         >
-                            {isLoginLoading ? (
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                                <>
-                                    無料でボットを作成する
-                                    <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                                </>
-                            )}
-                        </button>
-                        <button
-                            onClick={() => document.getElementById('usage-guide')?.scrollIntoView({ behavior: 'smooth' })}
-                            className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 font-bold rounded-2xl border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
+                            <Sparkles size={14} />
+                            最新のAIエンジン搭載。ビジネスの自動化をここから。
+                        </motion.div>
+
+                        <motion.h1
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="text-5xl sm:text-7xl font-black tracking-tight text-slate-900 mb-8 leading-[1.1]"
                         >
-                            使い方を見る
-                        </button>
+                            誰でも、数分で。<br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-blue-600">魔法のようなLINEボット</span>を。
+                        </motion.h1>
+
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 mb-12 leading-relaxed"
+                        >
+                            プログラミングは不要。AIの性格を入力するだけで、<br className="hidden sm:block" />
+                            24時間365日働くあなた専属のアシスタントが完成します。
+                        </motion.p>
+
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4"
+                        >
+                            <button
+                                onClick={handleStart}
+                                disabled={isLoginLoading}
+                                className="w-full sm:w-auto px-8 py-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 transition-all shadow-xl shadow-primary-500/25 flex items-center justify-center gap-2 group"
+                            >
+                                {isLoginLoading ? (
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        無料でボットを作成する
+                                        <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => document.getElementById('usage-guide')?.scrollIntoView({ behavior: 'smooth' })}
+                                className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 font-bold rounded-2xl border border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
+                            >
+                                使い方を見る
+                            </button>
+                        </motion.div>
+                    </div>
+
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, rotate: 2 }}
+                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.4, duration: 0.8 }}
+                        className="flex-1 relative w-full"
+                    >
+                        <div className="absolute inset-0 bg-primary-400/20 blur-[100px] rounded-full" />
+                        <LineChatAnimation />
                     </motion.div>
                 </div>
             </section>
