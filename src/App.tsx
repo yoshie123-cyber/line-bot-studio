@@ -72,12 +72,31 @@ function App() {
     }
   };
 
+  const [showReset, setShowReset] = useState(false);
+
+  useEffect(() => {
+    if (!isDataLoaded && user) {
+      const timer = setTimeout(() => setShowReset(true), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isDataLoaded, user]);
+
   if (authLoading || (!isDataLoaded && user)) {
     return (
       <div className="min-h-screen bg-[#071426] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
-          <p className="text-slate-500 text-sm font-medium animate-pulse">データを読み込み中...</p>
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-12 h-12 border-4 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
+          <div className="text-center">
+            <p className="text-slate-500 text-sm font-medium animate-pulse">データを読み込み中...</p>
+            {showReset && (
+              <button
+                onClick={handleLogout}
+                className="mt-8 text-xs text-slate-600 hover:text-white underline decoration-slate-700 transition-colors"
+              >
+                読み込みが終わりませんか？ ログアウトしてやり直す
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );

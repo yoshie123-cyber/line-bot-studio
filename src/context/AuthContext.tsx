@@ -31,8 +31,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loginWithGoogle = async () => {
         try {
             await signInWithPopup(auth, googleProvider);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Login failed:", error);
+            alert(`ログインに失敗しました。\n理由: ${error.message || "不明なエラー"}\n\n※VercelのURLがFirebaseの「承認済みドメイン」に登録されているか確認してください。`);
             throw error;
         }
     };
