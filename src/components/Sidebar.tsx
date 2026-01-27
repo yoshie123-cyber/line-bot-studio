@@ -22,6 +22,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         { id: 'dashboard', icon: LayoutDashboard, label: 'ダッシュボード' },
         { id: 'bots', icon: MessageSquare, label: 'マイボット' },
         { id: 'create', icon: PlusCircle, label: 'ボット作成' },
+        { id: 'support', icon: HelpCircle, label: '使い方ガイド' },
         { id: 'settings', icon: Settings, label: '設定' },
     ];
 
@@ -67,20 +68,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
                             </button>
                         ))}
                     </nav>
-
-                    <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
-                        <button
-                            onClick={() => setActiveTab('support')}
-                            className={cn(
-                                "w-full flex items-center gap-3 px-4 py-3 transition-all duration-200 rounded-xl",
-                                activeTab === 'support'
-                                    ? "bg-primary-500/10 text-primary-600 font-medium"
-                                    : "text-slate-500 hover:text-primary-600"
-                            )}>
-                            <HelpCircle size={20} />
-                            <span>サポート</span>
-                        </button>
-                    </div>
                 </div>
             </aside>
         </>
