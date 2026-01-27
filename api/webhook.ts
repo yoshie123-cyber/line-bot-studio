@@ -115,6 +115,7 @@ export default async function handler(req: any, res: any) {
 
     } catch (error: any) {
         console.error('[Webhook Fatal]', error);
+        // We cannot reply to the user here because we might not have a replyToken
         return res.status(200).send(`FATAL_ERROR: ${error.message}`);
     }
 }
@@ -129,11 +130,17 @@ async function handleEvent(client: Client, event: WebhookEvent, botData: any) {
     const systemPrompt = aiConfig?.systemPrompt || "";
 
     try {
+        if (!geminiApiKey) throw new Error("Gemini APIキーが設定されていません。ボット編集画面を確認してください。");
+
         const aiResponse = await getGeminiResponse(geminiApiKey, systemPrompt, userMessage);
         return await client.replyMessage(event.replyToken, { type: 'text', text: aiResponse });
     } catch (e: any) {
         console.error('[Webhook AI Error]', e.message);
-        return await client.replyMessage(event.replyToken, { type: 'text', text: "AI応答エラーが発生しました。" });
+        // Send the ACTUAL error message to the LINE chat for debugging
+        return await client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: `[システムエラー]\n内容: ${e.message}\n\n※このメッセージはシステム管理者向けの診断情報です。`
+        });
     }
 }
 
