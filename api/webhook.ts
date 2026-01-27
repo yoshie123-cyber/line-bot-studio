@@ -8,8 +8,9 @@ export default async function handler(req: any, res: any) {
     if (req.method === 'GET') {
         return res.status(200).send(`
             <div style="font-family: sans-serif; padding: 20px; line-height: 1.6;">
-                <h1 style="color: #00b900;">Webhook Rescue Mode [Ver 2.0]</h1>
+                <h1 style="color: #00b900;">Webhook Rescue Mode [Ver 2.1]</h1>
                 <p>Status: <span style="background: #dfd; padding: 2px 6px;">ALIVE</span></p>
+                <p>Service Account: ${process.env.FIREBASE_SERVICE_ACCOUNT ? '✅ Found' : '❌ Missing'}</p>
                 <p>Time: ${new Date().toLocaleString('ja-JP')}</p>
                 <p>Env: ${process.env.NODE_ENV || 'unknown'}</p>
                 <hr>
