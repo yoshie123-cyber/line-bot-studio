@@ -16,17 +16,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, acti
             <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
             <main className="lg:ml-64 min-h-screen">
-                <header className="sticky top-0 z-30 w-full glass border-b px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-2">
-                    <h1 className="text-sm sm:text-lg font-bold text-slate-800 dark:text-slate-200 truncate">
-                        {activeTab === 'dashboard' ? 'ホーム' :
-                            activeTab === 'bots' ? 'マイボット' :
-                                activeTab === 'create' ? 'ボット作成' :
-                                    activeTab === 'support' ? 'サポート' : '設定'}
-                    </h1>
+                <header className="sticky top-0 z-30 w-full glass border-b px-4 sm:px-8 py-3 sm:py-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                        {/* Mobile Spacer (for Sidebar button) */}
+                        <div className="w-10 lg:hidden shrink-0" />
+                        <h1 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {activeTab === 'dashboard' ? 'ホーム' :
+                                activeTab === 'bots' ? 'マイボット' :
+                                    activeTab === 'create' ? 'ボット作成' :
+                                        activeTab === 'support' ? 'サポート' : '設定'}
+                        </h1>
+                    </div>
                     <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-                        <div className="text-right hidden xs:block">
-                            <span className="block text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-none mb-0.5 sm:mb-1 truncate max-w-[120px] sm:max-w-none">{user?.displayName}</span>
-                            <span className="block text-[8px] sm:text-[10px] text-slate-400 font-mono truncate max-w-[120px] sm:max-w-none">{user?.email} (ID: {user?.uid.slice(0, 4)}...)</span>
+                        <div className="text-right hidden sm:block">
+                            <span className="block text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 leading-none mb-0.5 sm:mb-1 truncate max-w-[100px] sm:max-w-none">{user?.displayName}</span>
+                            <span className="block text-[8px] sm:text-[10px] text-slate-400 font-mono truncate max-w-[100px] sm:max-w-none">{user?.email}</span>
                         </div>
                         <button
                             onClick={logout}

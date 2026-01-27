@@ -259,15 +259,14 @@ function App() {
           </div>
         )}
       </section>
-      </div >
     );
-};
+  };
 
-return (
-  <DashboardLayout activeTab={activeTab} setActiveTab={handleTabChange}>
-    {renderContent()}
-  </DashboardLayout>
-);
+  return (
+    <DashboardLayout activeTab={activeTab} setActiveTab={handleTabChange}>
+      {renderContent()}
+    </DashboardLayout>
+  );
 }
 
 export default App;
