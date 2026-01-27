@@ -38,9 +38,19 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, acti
                     </div>
                 </header>
 
-                <div className="p-8">
+                <div className="p-8 flex-1">
                     {children}
                 </div>
+
+                <footer className="px-8 py-6 border-t border-slate-100 dark:border-slate-800 text-center">
+                    <p className="text-xs text-slate-400">
+                        &copy; {new Date().getFullYear()} LINEボットスタジオ. All Rights Reserved.
+                    </p>
+                    <div className="mt-2 flex justify-center gap-4">
+                        <button onClick={() => setActiveTab('support')} className="text-[10px] text-slate-400 hover:text-primary-500 transition-colors underline underline-offset-2">利用規約</button>
+                        <button onClick={() => setActiveTab('support')} className="text-[10px] text-slate-400 hover:text-primary-500 transition-colors underline underline-offset-2">プライバシーポリシー</button>
+                    </div>
+                </footer>
             </main>
         </div>
     );
