@@ -238,7 +238,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string) {
-    const WEBHOOK_VERSION = 'v1.5.8-ultra-fallback';
+    const WEBHOOK_VERSION = 'v1.5.9-config-diag';
     const cleanKey = apiKey.trim();
 
     // Clean and normalize the preferred model name (remove UI annotations like "(推奨)")
@@ -290,6 +290,12 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
             }
 
             lastError = data?.error?.message || JSON.stringify(data);
+            const errorCode = data?.error?.code;
+
+            // Handle 404 "Not Found" specifically - this is usually a project/API activation issue
+            if (errorCode === 404 || lastError.toLowerCase().includes('not found')) {
+                throw new Error(`[API Config Error] モデルが見つかりません。APIキーが「Google AI Studio」で作成されたものか確認してください。(詳細: ${lastError.substring(0, 40)})`);
+            }
 
             // Critical Quota/Rate Limit check: try next model in queue
             if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
