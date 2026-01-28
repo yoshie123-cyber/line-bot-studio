@@ -48,16 +48,35 @@ export default async function handler(req: any, res: any): Promise<void> {
                     let modelList = "<i>Click test to fetch models...</i>";
                     if (hasGemini) {
                         try {
-                            const mRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${data.geminiApiKey.trim()}`);
+                            const apiKey = data.geminiApiKey.trim();
+                            const mRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
                             const mData: any = await mRes.json();
                             if (mRes.ok) {
-                                const names = mData.models?.map((m: any) => m.name.replace('models/', '')) || [];
-                                modelList = names.length > 0 ? names.join(', ') : "No models found";
+                                const names = mData.models?.filter((m: any) => m.supportedGenerationMethods?.includes('generateContent')).map((m: any) => m.name.replace('models/', '')) || [];
+
+                                if (names.length > 0) {
+                                    const results = await Promise.all(names.slice(0, 5).map(async (name: string) => {
+                                        try {
+                                            const tRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent?key=${apiKey}`, {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ contents: [{ parts: [{ text: 'Hi' }] }] })
+                                            });
+                                            const tData: any = await tRes.json();
+                                            return `• <b>${name}</b>: ${tRes.status === 200 ? '✅ OK' : `❌ ${tRes.status} (${tData.error?.message || 'Error'})`}`;
+                                        } catch (e: any) {
+                                            return `• <b>${name}</b>: ❌ Fetch Failed (${e.message})`;
+                                        }
+                                    }));
+                                    modelList = results.join('<br>');
+                                } else {
+                                    modelList = "No generation models found.";
+                                }
                             } else {
-                                modelList = `<span style="color:red;">Error: ${mData.error?.message || 'Unauthorized'}</span>`;
+                                modelList = `<span style="color:red;">API Error: ${mData.error?.message || 'Unauthorized'}</span>`;
                             }
                         } catch (e: any) {
-                            modelList = `Fetch failed: ${e.message}`;
+                            modelList = `Diagnostic failed: ${e.message}`;
                         }
                     }
 
@@ -82,7 +101,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 
         return res.status(200).send(`
             <div style="font-family: sans-serif; padding: 20px; line-height: 1.6; background: #fafafa; min-height: 100vh;">
-                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 1.6.2]</h1>
+                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 1.6.4]</h1>
                 <p>Function Status: <span style="background: #dfd; padding: 2px 6px; border-radius: 4px;">ALIVE</span></p>
                 <div style="background: #eef2ff; border: 1px solid #c7d2fe; padding: 12px; border-radius: 6px; margin: 15px 0;">
                     <b>Diagnostic URL:</b><br>
@@ -240,7 +259,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string) {
-    const WEBHOOK_VERSION = 'v1.6.2-discovery';
+    const WEBHOOK_VERSION = 'v1.6.4-surgical';
     const cleanKey = apiKey.trim();
 
     // Clean and normalize the preferred model name (remove UI annotations like "(推奨)")
