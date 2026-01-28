@@ -348,6 +348,17 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                         value={geminiApiKey}
                                         onChange={(e) => setGeminiApiKey(e.target.value)}
                                     />
+                                    <div className="mt-3 flex justify-end">
+                                        <a
+                                            href={`${webhookUrl}${webhookUrl.includes('?') ? '&' : '?'}diag=1`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[10px] bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-colors"
+                                        >
+                                            <Globe size={12} />
+                                            <span>AI接続状態を詳しく診断する（別タブで開く）</span>
+                                        </a>
+                                    </div>
                                 </div>
 
                                 <div>
