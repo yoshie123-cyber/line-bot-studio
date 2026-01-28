@@ -238,7 +238,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string) {
-    const WEBHOOK_VERSION = 'v1.5.7';
+    const WEBHOOK_VERSION = 'v1.5.8-ultra-fallback';
     const cleanKey = apiKey.trim();
 
     // Clean and normalize the preferred model name (remove UI annotations like "(推奨)")
@@ -304,13 +304,41 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
         }
     }
 
-    // Final error reporting
-    const keyHint = cleanKey.length >= 4 ? `(Key: ...${cleanKey.slice(-4)})` : '(Key: Invalid)';
+    // --- [NEW] Ultra-Minimal Fallback (v1.5.8) ---
+    // If we've reached here with a quota error, try one last time with ZERO system prompt.
+    // This helps determine if the prompt content or length is the actual blocker.
     if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
-        throw new Error(`[Google AI Quota] 全ての有力モデル (${modelQueue.join(', ')}) で制限に達しました。${keyHint}\n\n【詳細】${lastError.substring(0, 100)}...`);
+        try {
+            console.log(`[Ultra Fallback] Trying minimal request for ${modelQueue[0]}...`);
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelQueue[0]}:generateContent?key=${cleanKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: userMessage }] }], // No system prompt!
+                    generationConfig: { temperature: 0.7, maxOutputTokens: 500 }
+                })
+            });
+            const data: any = await response.json();
+            if (response.ok) {
+                const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) return `(診断：プロンプトなしで回答に成功しました。システムプロンプトの長さや内容が制限の原因だった可能性があります。)\n\n${text}`;
+            }
+            lastError = data?.error?.message || lastError;
+        } catch (e) {
+            console.error("[Ultra Fallback] Failed:", e);
+        }
     }
 
-    throw new Error(`AIの応答に失敗しました。${keyHint} [Ver: ${WEBHOOK_VERSION}] (Last error: ${lastError.substring(0, 50)}...)`);
+    // Final error reporting with Key Hint, Version, and Token Diagnostics
+    const keyHint = cleanKey.length >= 4 ? `(Key: ...${cleanKey.slice(-4)})` : '(Key: Invalid)';
+    const diag = `[Len: Sys=${systemPrompt.length}, User=${userMessage.length}]`;
+
+    if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
+        throw new Error(`[Google AI Quota] 全てのモデルで制限に達しました。${keyHint} ${diag} [Ver: ${WEBHOOK_VERSION}]\n\n【詳細】${lastError.substring(0, 100)}...`);
+    }
+
+    throw new Error(`AIの応答に失敗しました。${keyHint} ${diag} [Ver: ${WEBHOOK_VERSION}] (Last error: ${lastError.substring(0, 50)}...)`);
 }
 
 /**
