@@ -238,7 +238,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string) {
-    const WEBHOOK_VERSION = 'v1.5.9-config-diag';
+    const WEBHOOK_VERSION = 'v1.6.0-api-v1-fallback';
     const cleanKey = apiKey.trim();
 
     // Clean and normalize the preferred model name (remove UI annotations like "(推奨)")
@@ -257,56 +257,63 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
     let lastError = '';
 
     for (const model of modelQueue) {
-        try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
+        // Try both v1 and v1beta API versions
+        for (const apiVer of ['v1beta', 'v1']) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/${apiVer}/models/${model}:generateContent?key=${cleanKey}`;
 
-            const parts: any[] = [{ text: `System: ${systemPrompt}\n\nUser: ${userMessage}` }];
-            if (mediaPart) {
-                parts.push(mediaPart);
+                const parts: any[] = [{ text: `System: ${systemPrompt}\n\nUser: ${userMessage}` }];
+                if (mediaPart) {
+                    parts.push(mediaPart);
+                }
+
+                const sendRequest = () => fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts }],
+                        generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
+                    })
+                });
+
+                let response = await sendRequest();
+
+                // Simple retry for 429 (Rate Limit)
+                if (response.status === 429) {
+                    console.warn(`[429 Retry] Waiting 1.5s for ${model}...`);
+                    await new Promise(r => setTimeout(r, 1500));
+                    response = await sendRequest();
+                }
+
+                const data: any = await response.json();
+
+                if (response.ok) {
+                    return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No AI reply";
+                }
+
+                lastError = data?.error?.message || JSON.stringify(data);
+                const errorCode = data?.error?.code;
+
+                // Log detailed diagnostic on each failure
+                console.warn(`[Gemini Failed] ${apiVer}/${model} (Status: ${response.status}): ${lastError}`);
+
+                // Specific trap for "Not Found" - might be version mismatch or disabled API
+                if (errorCode === 404 || lastError.toLowerCase().includes('not found')) {
+                    // If it's the last try for this model/version, we will move to next
+                    continue;
+                }
+
+                // Critical Quota/Rate Limit check: try next model in queue
+                if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
+                    console.warn(`[Quota Hit] ${model}: ${lastError}`);
+                    continue;
+                }
+
+                console.warn(`[Gemini Error] ${model} failed: ${lastError}`);
+            } catch (e: any) {
+                lastError = e.message;
+                console.error(`[Gemini Fatal] ${model}: ${e.message}`);
             }
-
-            const sendRequest = () => fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts }],
-                    generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
-                })
-            });
-
-            let response = await sendRequest();
-
-            // Simple retry for 429 (Rate Limit)
-            if (response.status === 429) {
-                console.warn(`[429 Retry] Waiting 1.5s for ${model}...`);
-                await new Promise(r => setTimeout(r, 1500));
-                response = await sendRequest();
-            }
-
-            const data: any = await response.json();
-
-            if (response.ok) {
-                return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No AI reply";
-            }
-
-            lastError = data?.error?.message || JSON.stringify(data);
-            const errorCode = data?.error?.code;
-
-            // Handle 404 "Not Found" specifically - this is usually a project/API activation issue
-            if (errorCode === 404 || lastError.toLowerCase().includes('not found')) {
-                throw new Error(`[API Config Error] モデルが見つかりません。APIキーが「Google AI Studio」で作成されたものか確認してください。(詳細: ${lastError.substring(0, 40)})`);
-            }
-
-            // Critical Quota/Rate Limit check: try next model in queue
-            if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
-                console.warn(`[Quota Hit] ${model}: ${lastError}`);
-                continue;
-            }
-
-            console.warn(`[Gemini Error] ${model} failed: ${lastError}`);
-        } catch (e: any) {
-            lastError = e.message;
-            console.error(`[Gemini Fatal] ${model}: ${e.message}`);
         }
     }
 
