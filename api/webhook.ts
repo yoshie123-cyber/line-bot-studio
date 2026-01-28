@@ -259,7 +259,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string) {
-    const WEBHOOK_VERSION = 'v1.6.4-surgical';
+    const WEBHOOK_VERSION = 'v1.6.5-flash-2.5';
     const cleanKey = apiKey.trim();
 
     // Clean and normalize the preferred model name (remove UI annotations like "(推奨)")
@@ -270,8 +270,8 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
         if (match) selectedModel = match[0];
     }
 
-    // Construct the fallback list - Leading with 2.0 as it's the most responsive for this user
-    const fallbackModels = ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro', 'gemini-pro'];
+    // Construct the fallback list - Surgical diagnostics show 2.5-flash is the only OK model
+    const fallbackModels = ['gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash-exp', 'gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-pro'];
     const modelQueue = Array.from(new Set([selectedModel, ...fallbackModels]));
 
     let lastError = '';
