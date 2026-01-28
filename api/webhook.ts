@@ -82,10 +82,12 @@ export default async function handler(req: any, res: any): Promise<void> {
 
         return res.status(200).send(`
             <div style="font-family: sans-serif; padding: 20px; line-height: 1.6; background: #fafafa; min-height: 100vh;">
-                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 2.8]</h1>
+                <h1 style="color: #00b900;">Webhook Diagnostic [Ver 1.6.2]</h1>
                 <p>Function Status: <span style="background: #dfd; padding: 2px 6px; border-radius: 4px;">ALIVE</span></p>
-                <p>Service Account: ${process.env.FIREBASE_SERVICE_ACCOUNT ? (process.env.FIREBASE_SERVICE_ACCOUNT.trim().startsWith('{') ? '✅ Found (JSON)' : '⚠️ Found (Text only)') : '❌ Missing'}</p>
-                <hr>
+                <div style="background: #eef2ff; border: 1px solid #c7d2fe; padding: 12px; border-radius: 6px; margin: 15px 0;">
+                    <b>Diagnostic URL:</b><br>
+                    <code style="word-break: break-all; font-size: 11px;">https://${req.headers.host}/api/webhook?uid=${uid}&bid=${bid}</code>
+                </div>
                 ${botStatus}
                 <p style="font-size: 12px; color: #666; margin-top: 20px;">Time: ${new Date().toLocaleString('ja-JP')}</p>
             </div>
@@ -238,7 +240,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string) {
-    const WEBHOOK_VERSION = 'v1.6.1-trace-logs';
+    const WEBHOOK_VERSION = 'v1.6.2-discovery';
     const cleanKey = apiKey.trim();
 
     // Clean and normalize the preferred model name (remove UI annotations like "(推奨)")
@@ -249,8 +251,8 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
         if (match) selectedModel = match[0];
     }
 
-    // Construct the fallback list
-    const fallbackModels = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro', 'gemini-2.0-flash-exp', 'gemini-pro'];
+    // Construct the fallback list - Leading with 2.0 as it's the most responsive for this user
+    const fallbackModels = ['gemini-2.0-flash-exp', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro', 'gemini-pro'];
     const modelQueue = Array.from(new Set([selectedModel, ...fallbackModels]));
 
     let lastError = '';
@@ -278,10 +280,10 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
 
                 let response = await sendRequest();
 
-                // Simple retry for 429 (Rate Limit)
+                // Simple retry for 429 (Rate Limit) - Increased to 3s for v1.6.2
                 if (response.status === 429) {
-                    console.warn(`[429 Retry] Waiting 1.5s for ${model}...`);
-                    await new Promise(r => setTimeout(r, 1500));
+                    console.warn(`[429 Retry] Waiting 3s for ${model}...`);
+                    await new Promise(r => setTimeout(r, 3000));
                     response = await sendRequest();
                 }
 
