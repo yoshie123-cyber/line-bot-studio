@@ -238,7 +238,7 @@ export default async function handler(req: any, res: any): Promise<void> {
 }
 
 async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string) {
-    const WEBHOOK_VERSION = 'v1.6.0-api-v1-fallback';
+    const WEBHOOK_VERSION = 'v1.6.1-trace-logs';
     const cleanKey = apiKey.trim();
 
     // Clean and normalize the preferred model name (remove UI annotations like "(推奨)")
@@ -249,12 +249,12 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
         if (match) selectedModel = match[0];
     }
 
-    // Construct the fallback list: Preferred model first, then stable fallbacks
-    // Note: 1.5-flash-8b is excellent for high-volume free-tier usage.
-    const fallbackModels = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-2.0-flash', 'gemini-pro-latest'];
+    // Construct the fallback list
+    const fallbackModels = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.5-pro', 'gemini-2.0-flash-exp', 'gemini-pro'];
     const modelQueue = Array.from(new Set([selectedModel, ...fallbackModels]));
 
     let lastError = '';
+    let attemptLogs: string[] = [];
 
     for (const model of modelQueue) {
         // Try both v1 and v1beta API versions
@@ -287,6 +287,10 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
 
                 const data: any = await response.json();
 
+                // Track every attempt status
+                const shortModel = model.replace('gemini-', '');
+                attemptLogs.push(`${apiVer === 'v1beta' ? 'β' : 'v1'}/${shortModel}:${response.status}`);
+
                 if (response.ok) {
                     return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No AI reply";
                 }
@@ -312,6 +316,7 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
                 console.warn(`[Gemini Error] ${model} failed: ${lastError}`);
             } catch (e: any) {
                 lastError = e.message;
+                attemptLogs.push(`${model}:ERR`);
                 console.error(`[Gemini Fatal] ${model}: ${e.message}`);
             }
         }
@@ -346,12 +351,13 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
     // Final error reporting with Key Hint, Version, and Token Diagnostics
     const keyHint = cleanKey.length >= 4 ? `(Key: ...${cleanKey.slice(-4)})` : '(Key: Invalid)';
     const diag = `[Len: Sys=${systemPrompt.length}, User=${userMessage.length}]`;
+    const trace = `[Trace: ${attemptLogs.join(', ')}]`;
 
     if (lastError.toLowerCase().includes('quota') || lastError.includes('429')) {
-        throw new Error(`[Google AI Quota] 全てのモデルで制限に達しました。${keyHint} ${diag} [Ver: ${WEBHOOK_VERSION}]\n\n【詳細】${lastError.substring(0, 100)}...`);
+        throw new Error(`[Google AI Quota] 制限に達しました。${keyHint} ${diag} ${trace} [Ver: ${WEBHOOK_VERSION}]\n\n【詳細】${lastError.substring(0, 100)}...`);
     }
 
-    throw new Error(`AIの応答に失敗しました。${keyHint} ${diag} [Ver: ${WEBHOOK_VERSION}] (Last error: ${lastError.substring(0, 50)}...)`);
+    throw new Error(`AIの応答に失敗しました。${keyHint} ${diag} ${trace} [Ver: ${WEBHOOK_VERSION}] (Last error: ${lastError.substring(0, 50)}...)`);
 }
 
 /**
