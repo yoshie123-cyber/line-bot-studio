@@ -382,6 +382,17 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
 }
 
 /**
+ * Normalizes Flex Message JSON if it's wrapped in a 'contents' or 'messages' block.
+ * We want the actual bubble/carousel object.
+ */
+function normalizeFlexJson(json: any): any {
+    if (!json) return null;
+    if (json.type === 'bubble' || json.type === 'carousel') return json;
+    if (json.contents) return normalizeFlexJson(json.contents);
+    return json;
+}
+
+/**
  * Parses AI response text for shorthands like [LINK:label|url] or [BUTTON:label|text]
  * and converts them into a LINE Flex Message.
  */
@@ -391,6 +402,30 @@ function parseRichMessage(text: string): any {
 
     const links = Array.from(text.matchAll(linkRegex));
     const buttons = Array.from(text.matchAll(buttonRegex));
+
+    // 3. FULL FLEX TAG [FLEX:{...}]
+    const flexRegex = /\[FLEX:([\s\S]+?)\]/;
+    const flexMatch = text.match(flexRegex);
+
+    if (flexMatch) {
+        try {
+            const rawJson = flexMatch[1].trim();
+            const flexContent = JSON.parse(rawJson);
+            const normalized = normalizeFlexJson(flexContent);
+
+            if (normalized) {
+                return {
+                    type: 'flex',
+                    altText: text.replace(flexRegex, '').substring(0, 10) || 'リッチメッセージ',
+                    contents: normalized
+                };
+            }
+        } catch (e) {
+            console.error('[Flex] JSON Parse Error:', e);
+            // Fallback to text + error hint if JSON is broken
+            return null;
+        }
+    }
 
     if (links.length === 0 && buttons.length === 0) return null;
 

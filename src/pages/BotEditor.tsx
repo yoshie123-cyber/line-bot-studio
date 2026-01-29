@@ -386,6 +386,15 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                                 <p className="text-[9px] font-bold text-slate-400 mb-1">🔘 返信ボタン</p>
                                                 <code className="text-[10px] text-primary-600 font-mono">[BUTTON:名前|送信内容]</code>
                                             </div>
+                                            <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700 sm:col-span-2">
+                                                <p className="text-[9px] font-bold text-slate-400 mb-1">✨ 高度なFlex Message（カード・画像など）</p>
+                                                <div className="flex flex-col gap-1.5">
+                                                    <code className="text-[10px] text-primary-600 font-mono">[FLEX:{"{"}JSON内容{"}"}]</code>
+                                                    <p className="text-[8px] text-slate-500">
+                                                        <a href="https://developers.line.biz/flex-simulator/" target="_blank" className="underline hover:text-primary-600">Flex Message Simulator</a> で作ったJSONを丸ごと貼り付けて、豪華なレイアウトを作成できます。
+                                                    </p>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
