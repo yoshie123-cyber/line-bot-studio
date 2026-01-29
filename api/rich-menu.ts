@@ -83,21 +83,50 @@ export default async function handler(req: any, res: any) {
 
         // 3. Upload Image (if provided)
         if (richMenu.backgroundImageUrl) {
+            let buffer: Buffer;
+            let contentType: string;
+
             try {
                 const imgRes = await fetch(richMenu.backgroundImageUrl);
-                if (!imgRes.ok) throw new Error(`画像の取得に失敗しました (Status: ${imgRes.status})。URLが正しいか確認してください。`);
-
-                const contentType = imgRes.headers.get('content-type') || '';
-                if (contentType.includes('text/html')) {
-                    throw new Error('指定されたURLは画像ではなく「Webページ」です。Canva等をご利用の場合は、画像を右クリックして「画像アドレスをコピー」したURLを使用してください。');
+                if (!imgRes.ok) {
+                    throw new Error(`画像の取得に失敗しました (HTTP ${imgRes.status})。URLが公開されているか確認してください。`);
                 }
 
-                const buffer = Buffer.from(await imgRes.arrayBuffer());
-                await client.setRichMenuImage(richMenuId, buffer, contentType || 'image/png');
-            } catch (e: any) {
-                console.error('[RichMenu] Image upload failed:', e);
+                contentType = imgRes.headers.get('content-type') || '';
+                const contentLength = parseInt(imgRes.headers.get('content-length') || '0');
+
+                if (contentType.includes('text/html')) {
+                    throw new Error('指定されたURLは画像ではなく「Webページ」です。右クリックして「画像アドレスをコピー」したURLを使用してください。');
+                }
+
+                if (contentLength > 1024 * 1024) {
+                    throw new Error(`画像サイズが大きすぎます (${(contentLength / 1024 / 1024).toFixed(1)}MB)。1MB以下の画像を使用してください。`);
+                }
+
+                buffer = Buffer.from(await imgRes.arrayBuffer());
+
+                // Final check on buffer size if contentLength was missing
+                if (buffer.length > 1024 * 1024) {
+                    throw new Error(`画像データが1MBを超えています (${(buffer.length / 1024 / 1024).toFixed(1)}MB)。`);
+                }
+
+            } catch (fetchErr: any) {
+                console.error('[RichMenu] Fetch/Validation Failed:', fetchErr);
                 await client.deleteRichMenu(richMenuId);
-                return res.status(400).json({ success: false, error: e.message });
+                return res.status(400).json({ success: false, error: fetchErr.message });
+            }
+
+            try {
+                await client.setRichMenuImage(richMenuId, buffer, contentType || 'image/png');
+            } catch (lineErr: any) {
+                console.error('[RichMenu] LINE Image Upload Failed:', lineErr);
+                await client.deleteRichMenu(richMenuId);
+                // Extract detailed error from LINE API if available
+                const detail = lineErr.body?.message || lineErr.message || '不明なエラー';
+                return res.status(400).json({
+                    success: false,
+                    error: `LINEへの画像アップロードに失敗しました: ${detail}\n※画像サイズは2500x1686 または 2500x843、形式はPNG/JPGである必要があります。`
+                });
             }
         }
 
