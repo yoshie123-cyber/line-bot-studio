@@ -8,7 +8,8 @@ import {
     Bot,
     Key,
     Grid,
-    Image as ImageIcon
+    Image as ImageIcon,
+    BookOpen
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getGeminiResponse } from '../lib/gemini';
@@ -468,6 +469,23 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
 
                         {activeTab === 'richmenu' && (
                             <div className="space-y-8">
+                                <section className="p-4 bg-primary-50/50 dark:bg-primary-950/20 border border-primary-100 dark:border-primary-900/50 rounded-xl mb-6">
+                                    <h4 className="text-xs font-bold text-primary-800 dark:text-primary-300 mb-2 flex items-center gap-1.5">
+                                        <BookOpen size={14} />
+                                        作成の2ステップ
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[10px] leading-relaxed">
+                                        <div className="flex gap-2">
+                                            <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center font-bold shrink-0">1</span>
+                                            <p><span className="font-bold">画像を作る</span>: 文字やアイコンを入れた画像をCanva等で作成（2500x1686px推奨）。</p>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <span className="w-5 h-5 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center font-bold shrink-0">2</span>
+                                            <p><span className="font-bold">配置を設定</span>: 下のグリッドで「どこを触ったら何が起きるか」のアクションを設定。</p>
+                                        </div>
+                                    </div>
+                                </section>
+
                                 <section>
                                     <div className="flex items-center justify-between mb-4">
                                         <h4 className="text-sm font-bold flex items-center gap-2">

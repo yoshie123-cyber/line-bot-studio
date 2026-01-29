@@ -37,6 +37,59 @@ export const Support = () => {
                 </div>
             </section>
 
+            <section className="glass rounded-2xl overflow-hidden shadow-sm border border-emerald-200/50">
+                <div className="p-6 border-b border-emerald-100 dark:border-emerald-900 bg-emerald-50/50 dark:bg-emerald-900/50">
+                    <h3 className="font-bold flex items-center gap-2">
+                        <BookOpen size={18} className="text-emerald-600" />
+                        リッチメニュー（メニューボタン）作成ガイド
+                    </h3>
+                </div>
+                <div className="p-8 space-y-6">
+                    <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-900/50">
+                        <h4 className="text-sm font-bold text-emerald-800 dark:text-emerald-300 mb-2">💡 リッチメニューの重要概念</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            リッチメニューは「デザイン画像」と「透明なセンサー」の2枚重ねでできています。
+                        </p>
+                        <ul className="mt-3 space-y-2 text-xs text-slate-500 list-disc list-inside">
+                            <li><b>デザイン画像:</b> ボタンの文字・アイコン・枠線はすべて画像の中にデザインしておく必要があります。</li>
+                            <li><b>透明なセンサー:</b> 画面上の「このあたりを触ったらこのアクション」という配置ルールを本ツールのエディターで設定します。</li>
+                        </ul>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="flex gap-4">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-500 shrink-0">1</div>
+                            <div className="space-y-1">
+                                <h5 className="font-bold text-sm">画像のデザイン（Canva等）</h5>
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                    3枠または6枠のグリッドを意識して画像を作成します。推奨サイズは 2500x1686 px です。
+                                    「お問合せ」「予約」などのすべての文字はここで書き込みます。
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-500 shrink-0">2</div>
+                            <div className="space-y-1">
+                                <h5 className="font-bold text-sm">画像URLの取得</h5>
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                    作成した画像をWeb上にアップロードし、直接リンク（画像アドレス）を取得します。
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-slate-500 shrink-0">3</div>
+                            <div className="space-y-1">
+                                <h5 className="font-bold text-sm">Studioで配置設定</h5>
+                                <p className="text-xs text-slate-500 leading-relaxed">
+                                    「リッチメニュー」タブで、配置1〜6に「どのURLを開くか」などを設定します。
+                                    最後に「LINEに反映」を押せば完了です！
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <div className="glass p-8 rounded-2xl text-center space-y-4 border border-primary-100/50 bg-primary-50/10">
                 <div className="p-3 bg-primary-500/10 rounded-full w-fit mx-auto text-primary-600">
                     <Mail size={24} />
