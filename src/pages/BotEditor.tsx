@@ -72,8 +72,8 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
     const [channelSecret, setChannelSecret] = useState(bot.lineConfig?.channelSecret || '');
     const [channelAccessToken, setChannelAccessToken] = useState(bot.lineConfig?.channelAccessToken || '');
     const [systemPrompt, setSystemPrompt] = useState(bot.aiConfig?.systemPrompt || '');
-    const [model, setModel] = useState(bot.aiConfig?.model || 'Gemini 1.5 Flash (無料枠)');
-    const [temperature, setTemperature] = useState(bot.aiConfig?.temperature || 0.7);
+    const [model] = useState(bot.aiConfig?.model || 'Gemini 1.5 Flash (無料枠)');
+    const [temperature] = useState(bot.aiConfig?.temperature || 0.7);
     const [avatarUrl, setAvatarUrl] = useState(bot.avatarUrl || '');
     const [isSyncing, setIsSyncing] = useState(false);
 
