@@ -1,4 +1,5 @@
 import * as line from '@line/bot-sdk';
+import { Buffer } from 'buffer';
 
 export const config = {
     api: {
@@ -84,17 +85,19 @@ export default async function handler(req: any, res: any) {
         if (richMenu.backgroundImageUrl) {
             try {
                 const imgRes = await fetch(richMenu.backgroundImageUrl);
-                if (!imgRes.ok) throw new Error('Failed to fetch image');
-                const buffer = Buffer.from(await imgRes.arrayBuffer());
+                if (!imgRes.ok) throw new Error(`画像の取得に失敗しました (Status: ${imgRes.status})。URLが正しいか確認してください。`);
 
-                // Get content type
-                const contentType = imgRes.headers.get('content-type') || 'image/png';
-                await client.setRichMenuImage(richMenuId, buffer, contentType);
+                const contentType = imgRes.headers.get('content-type') || '';
+                if (contentType.includes('text/html')) {
+                    throw new Error('指定されたURLは画像ではなく「Webページ」です。Canva等をご利用の場合は、画像を右クリックして「画像アドレスをコピー」したURLを使用してください。');
+                }
+
+                const buffer = Buffer.from(await imgRes.arrayBuffer());
+                await client.setRichMenuImage(richMenuId, buffer, contentType || 'image/png');
             } catch (e: any) {
                 console.error('[RichMenu] Image upload failed:', e);
-                // We created the menu but failed the image, maybe delete it or return error
                 await client.deleteRichMenu(richMenuId);
-                return res.status(400).json({ success: false, error: `画像のアップロードに失敗しました: ${e.message}` });
+                return res.status(400).json({ success: false, error: e.message });
             }
         }
 

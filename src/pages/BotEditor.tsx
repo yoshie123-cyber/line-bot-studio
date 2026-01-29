@@ -606,7 +606,10 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                             value={richMenuBg}
                                             onChange={(e) => setRichMenuBg(e.target.value)}
                                         />
-                                        <p className="text-[10px] text-slate-500 mt-2">推奨サイズ: 2500 × 1686 px (PNG/JPG)</p>
+                                        <p className="text-[10px] text-slate-500 mt-2">
+                                            推奨サイズ: 2500 × 1686 px (PNG/JPG)<br />
+                                            <span className="text-primary-600 font-bold">※Canvaの場合:</span> 公開リンクではなく、画像を右クリックして「画像アドレスをコピー」したURLを貼ってください。
+                                        </p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold mb-2">メニューバーの文字</label>
