@@ -6,7 +6,9 @@ import {
     Globe,
     ArrowLeft,
     Bot,
-    Key
+    Key,
+    Grid,
+    Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getGeminiResponse } from '../lib/gemini';
@@ -26,6 +28,16 @@ interface BotData {
         systemPrompt: string;
         model: string;
         temperature: number;
+    };
+    richMenu?: {
+        layout: 'six' | 'three';
+        backgroundImageUrl: string;
+        chatBarText: string;
+        buttons: Array<{
+            label: string;
+            type: 'uri' | 'message';
+            value: string;
+        }>;
     };
 }
 
@@ -58,6 +70,22 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
     const [temperature, setTemperature] = useState(bot.aiConfig?.temperature || 0.7);
     const [avatarUrl, setAvatarUrl] = useState(bot.avatarUrl || '');
     const [isSyncing, setIsSyncing] = useState(false);
+
+    // Rich Menu state
+    const [richMenuLayout, setRichMenuLayout] = useState<'six' | 'three'>(bot.richMenu?.layout || 'six');
+    const [richMenuBg, setRichMenuBg] = useState(bot.richMenu?.backgroundImageUrl || '');
+    const [richMenuChatBar, setRichMenuChatBar] = useState(bot.richMenu?.chatBarText || 'メニュー');
+    const [richMenuButtons, setRichMenuButtons] = useState<Array<{ label: string, type: 'uri' | 'message', value: string }>>(
+        bot.richMenu?.buttons || [
+            { label: 'ボタン1', type: 'message', value: 'こんにちは' },
+            { label: 'ボタン2', type: 'message', value: '助けて' },
+            { label: 'ボタン3', type: 'uri', value: 'https://example.com' },
+            { label: 'ボタン4', type: 'message', value: '予約' },
+            { label: 'ボタン5', type: 'message', value: 'アクセス' },
+            { label: 'ボタン6', type: 'message', value: '終了' },
+        ]
+    );
+    const [selectedButtonIdx, setSelectedButtonIdx] = useState<number | null>(null);
 
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
     const [copyStatus, setCopyStatus] = useState(false);
@@ -122,7 +150,13 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                     model,
                     temperature
                 },
-                avatarUrl
+                avatarUrl,
+                richMenu: {
+                    layout: richMenuLayout,
+                    backgroundImageUrl: richMenuBg,
+                    chatBarText: richMenuChatBar,
+                    buttons: richMenuButtons
+                }
             });
             setSaveStatus('saved');
             setTimeout(() => setSaveStatus('idle'), 3000);
@@ -136,6 +170,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
         { id: 'basic', icon: Bot, label: '基本情報' },
         { id: 'line', icon: Globe, label: 'LINE連携' },
         { id: 'ai', icon: Cpu, label: 'AI設定' },
+        { id: 'richmenu', icon: Grid, label: 'リッチメニュー' },
     ];
 
     return (
@@ -427,6 +462,212 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                             <span className="text-sm font-bold w-8">{temperature}</span>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'richmenu' && (
+                            <div className="space-y-8">
+                                <section>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-sm font-bold flex items-center gap-2">
+                                            <ImageIcon size={16} className="text-slate-400" />
+                                            <span>リッチメニューのデザイン</span>
+                                        </h4>
+                                        <div className="flex bg-slate-100 dark:bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-slate-800">
+                                            <button
+                                                onClick={() => setRichMenuLayout('six')}
+                                                className={cn(
+                                                    "px-3 py-1 text-[10px] font-bold rounded-md transition-all",
+                                                    richMenuLayout === 'six' ? "bg-white dark:bg-slate-800 shadow-sm text-primary-600" : "text-slate-400"
+                                                )}
+                                            >
+                                                6枠 (2x3)
+                                            </button>
+                                            <button
+                                                onClick={() => setRichMenuLayout('three')}
+                                                className={cn(
+                                                    "px-3 py-1 text-[10px] font-bold rounded-md transition-all",
+                                                    richMenuLayout === 'three' ? "bg-white dark:bg-slate-800 shadow-sm text-primary-600" : "text-slate-400"
+                                                )}
+                                            >
+                                                3枠 (1x3)
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                                        {/* Visual Designer */}
+                                        <div className="md:col-span-12">
+                                            <div className="relative aspect-[2500/1686] w-full max-w-[500px] mx-auto bg-slate-100 dark:bg-slate-900 rounded-xl overflow-hidden border-2 border-slate-200 dark:border-slate-800 shadow-inner group">
+                                                {richMenuBg && (
+                                                    <img src={richMenuBg} className="absolute inset-0 w-full h-full object-cover" alt="Rich Menu BG" />
+                                                )}
+                                                <div className={cn(
+                                                    "absolute inset-0 grid gap-px bg-slate-300/30",
+                                                    richMenuLayout === 'six' ? "grid-cols-3 grid-rows-2" : "grid-cols-3 grid-rows-1 h-1/2 bottom-0"
+                                                )}>
+                                                    {(richMenuLayout === 'six' ? [0, 1, 2, 3, 4, 5] : [0, 1, 2]).map((idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => setSelectedButtonIdx(idx)}
+                                                            className={cn(
+                                                                "relative flex flex-col items-center justify-center p-2 transition-all hover:bg-primary-500/10 backdrop-blur-[2px]",
+                                                                selectedButtonIdx === idx ? "bg-primary-500/20 border-2 border-primary-500 z-10 scale-[1.02] shadow-lg" : "border border-white/10"
+                                                            )}
+                                                        >
+                                                            <div className="absolute top-1 left-1.5 text-[10px] font-black text-white/50 bg-black/20 px-1 rounded">{idx + 1}</div>
+                                                            <span className="text-[10px] font-bold text-white drop-shadow-md text-center line-clamp-2">
+                                                                {richMenuButtons[idx]?.label || '未設定'}
+                                                            </span>
+                                                            <span className="text-[8px] text-white/70 drop-shadow-sm mt-1">
+                                                                {richMenuButtons[idx]?.type === 'uri' ? '🔗 リンク' : '💬 文字送信'}
+                                                            </span>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Editor Section */}
+                                        <div className="md:col-span-12 glass p-6 rounded-xl border border-primary-100 dark:border-primary-900/30">
+                                            {selectedButtonIdx !== null ? (
+                                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <h5 className="text-xs font-bold text-primary-700">配置 {selectedButtonIdx + 1} の設定</h5>
+                                                        <span className="text-[10px] text-slate-400">現在選択中</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-slate-500 mb-1">ラベル（管理用）</label>
+                                                            <input
+                                                                type="text"
+                                                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm"
+                                                                value={richMenuButtons[selectedButtonIdx].label}
+                                                                onChange={(e) => {
+                                                                    const newButtons = [...richMenuButtons];
+                                                                    newButtons[selectedButtonIdx].label = e.target.value;
+                                                                    setRichMenuButtons(newButtons);
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-slate-500 mb-1">アクション</label>
+                                                            <select
+                                                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm"
+                                                                value={richMenuButtons[selectedButtonIdx].type}
+                                                                onChange={(e) => {
+                                                                    const newButtons = [...richMenuButtons];
+                                                                    newButtons[selectedButtonIdx].type = e.target.value as 'uri' | 'message';
+                                                                    setRichMenuButtons(newButtons);
+                                                                }}
+                                                            >
+                                                                <option value="message">文字を送る</option>
+                                                                <option value="uri">URLを開く</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                                                                {richMenuButtons[selectedButtonIdx].type === 'uri' ? 'URL' : '送信内容'}
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm"
+                                                                value={richMenuButtons[selectedButtonIdx].value}
+                                                                onChange={(e) => {
+                                                                    const newButtons = [...richMenuButtons];
+                                                                    newButtons[selectedButtonIdx].value = e.target.value;
+                                                                    setRichMenuButtons(newButtons);
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                                                    <Grid size={32} className="mb-2 opacity-20" />
+                                                    <p className="text-xs">上のグリッドをクリックして、ボタンを設定してください。</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                                            <ImageIcon size={14} className="text-slate-400" />
+                                            <span>背景画像 URL</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="https://example.com/menu-bg.png"
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary-500/20 text-sm font-mono"
+                                            value={richMenuBg}
+                                            onChange={(e) => setRichMenuBg(e.target.value)}
+                                        />
+                                        <p className="text-[10px] text-slate-500 mt-2">推奨サイズ: 2500 × 1686 px (PNG/JPG)</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold mb-2">メニューバーの文字</label>
+                                        <input
+                                            type="text"
+                                            placeholder="メニューを開く"
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary-500/20 text-sm"
+                                            value={richMenuChatBar}
+                                            onChange={(e) => setRichMenuChatBar(e.target.value)}
+                                        />
+                                        <p className="text-[10px] text-slate-500 mt-2">LINE画面下部のバーに表示されるテキストです。</p>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 bg-primary-50 dark:bg-primary-950/30 rounded-2xl border border-primary-100 dark:border-primary-900/50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div>
+                                        <h4 className="text-sm font-bold text-primary-900 dark:text-primary-100">LINE公式アカウントに反映</h4>
+                                        <p className="text-xs text-primary-700 dark:text-primary-400 mt-1">
+                                            現在の設定をLINE Messaging APIを通じて公式アカウントに即座に反映します。
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            if (!channelAccessToken) {
+                                                alert("公式アカウントと同期するには、先に「LINE連携」タブでアクセストークンを入力してください。");
+                                                return;
+                                            }
+                                            setIsSyncing(true);
+                                            try {
+                                                // We'll implement this endpoint next
+                                                const res = await fetch('/api/rich-menu', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({
+                                                        token: channelAccessToken,
+                                                        richMenu: {
+                                                            layout: richMenuLayout,
+                                                            backgroundImageUrl: richMenuBg,
+                                                            chatBarText: richMenuChatBar,
+                                                            buttons: richMenuButtons
+                                                        }
+                                                    })
+                                                });
+                                                const data = await res.json();
+                                                if (data.success) {
+                                                    alert("反映が完了しました！LINEで確認してください。");
+                                                } else {
+                                                    alert(`失敗しました: ${data.error || '不明なエラー'}`);
+                                                }
+                                            } catch (e) {
+                                                alert("通信エラーが発生しました。");
+                                            } finally {
+                                                setIsSyncing(false);
+                                            }
+                                        }}
+                                        disabled={isSyncing}
+                                        className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-primary-500/20 flex items-center gap-2 shrink-0 disabled:opacity-50"
+                                    >
+                                        <Globe size={18} />
+                                        <span>{isSyncing ? '同期中...' : 'LINEに即時反映する'}</span>
+                                    </button>
                                 </div>
                             </div>
                         )}
