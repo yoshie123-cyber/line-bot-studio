@@ -512,17 +512,15 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                                             key={idx}
                                                             onClick={() => setSelectedButtonIdx(idx)}
                                                             className={cn(
-                                                                "relative flex flex-col items-center justify-center p-2 transition-all hover:bg-primary-500/10 backdrop-blur-[2px]",
-                                                                selectedButtonIdx === idx ? "bg-primary-500/20 border-2 border-primary-500 z-10 scale-[1.02] shadow-lg" : "border border-white/10"
+                                                                "relative flex flex-col items-center justify-center p-2 transition-all hover:bg-primary-500/10 backdrop-blur-[1px]",
+                                                                selectedButtonIdx === idx ? "bg-primary-500/20 border-2 border-primary-500 z-10 scale-[1.02] shadow-lg" : "border border-dashed border-white/30"
                                                             )}
                                                         >
-                                                            <div className="absolute top-1 left-1.5 text-[10px] font-black text-white/50 bg-black/20 px-1 rounded">{idx + 1}</div>
-                                                            <span className="text-[10px] font-bold text-white drop-shadow-md text-center line-clamp-2">
+                                                            <div className="absolute top-1 left-1.5 text-[8px] font-black text-white/50 bg-black/40 px-1 rounded">配置 {idx + 1}</div>
+                                                            <span className="text-[9px] font-bold text-white/80 text-center line-clamp-2 bg-black/20 px-1 rounded mt-2">
                                                                 {richMenuButtons[idx]?.label || '未設定'}
                                                             </span>
-                                                            <span className="text-[8px] text-white/70 drop-shadow-sm mt-1">
-                                                                {richMenuButtons[idx]?.type === 'uri' ? '🔗 リンク' : '💬 文字送信'}
-                                                            </span>
+                                                            <span className="text-[7px] text-white/40 mt-1 uppercase tracking-tighter">Click Area Guide</span>
                                                         </button>
                                                     ))}
                                                 </div>
