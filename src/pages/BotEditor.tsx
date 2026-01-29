@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
     Save,
-    Send,
     Cpu,
     Globe,
     ArrowLeft,
@@ -9,7 +8,12 @@ import {
     Key,
     Grid,
     Image as ImageIcon,
-    BookOpen
+    BookOpen,
+    Smile,
+    Plus,
+    Keyboard,
+    ChevronDown,
+    Menu as MenuIcon
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getGeminiResponse } from '../lib/gemini';
@@ -56,6 +60,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
     ]);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [showRichMenuPreview, setShowRichMenuPreview] = useState(false);
 
     // Dynamic Webhook URL based on current domain and IDs
     const webhookUrl = `${window.location.origin}/api/webhook?uid=${userId}&bid=${bot.id}`;
@@ -118,7 +123,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                     const hasGreeting = /こんにちは|こんばんは|おはよう|おは|hello|hi/.test(lowerInput);
 
                     if (hasGreeting) {
-                        mockReply = `こんにちは！${name}です。お声がけいただきありがとうございます。本物のAIを体験するには、AI設定からGeminiのAPIキーを入力してください！`;
+                        mockReply = `こんにちは！${name} です。お声がけいただきありがとうございます。本物のAIを体験するには、AI設定からGeminiのAPIキーを入力してください！`;
                     } else {
                         mockReply = `「${userMsg}」についてですね。現在はシミュレーターモードですが、APIキーを設定すればGeminiが本物の知能で回答します。`;
                     }
@@ -128,7 +133,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                 return; // Early return for mock
             }
         } catch (error: any) {
-            setMessages(prev => [...prev, { role: 'bot', text: `エラーが発生しました: ${error.message || 'APIキーが無効か、通信エラーです。'}` }]);
+            setMessages(prev => [...prev, { role: 'bot', text: `エラーが発生しました: ${error.message || 'APIキーが無効か、通信エラーです。'} ` }]);
         } finally {
             if (geminiApiKey) setIsTyping(false);
         }
@@ -285,7 +290,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                                     }
                                                     setIsSyncing(true);
                                                     try {
-                                                        const res = await fetch(`/api/line-info?token=${encodeURIComponent(channelAccessToken)}`);
+                                                        const res = await fetch(`/ api / line - info ? token = ${encodeURIComponent(channelAccessToken)} `);
                                                         const data = await res.json();
                                                         if (data.pictureUrl) {
                                                             setAvatarUrl(data.pictureUrl);
@@ -386,7 +391,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                     />
                                     <div className="mt-3 flex justify-end">
                                         <a
-                                            href={`${webhookUrl}${webhookUrl.includes('?') ? '&' : '?'}diag=1`}
+                                            href={`${webhookUrl}${webhookUrl.includes('?') ? '&' : '?'} diag = 1`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-[10px] bg-emerald-100 hover:bg-emerald-200 text-emerald-700 font-bold py-1.5 px-3 rounded-lg flex items-center gap-1.5 transition-colors"
@@ -435,6 +440,11 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                     </div>
 
                                 </div>
+                                {/* 
+                                   ユーザーの要望により、技術的な設定（モデル・Temperature）は非表示化
+                                   (内部的にはデフォルト値を使用)
+                                */}
+                                {/* 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-semibold mb-2">AIモデル</label>
@@ -464,6 +474,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                         </div>
                                     </div>
                                 </div>
+                                */}
                             </div>
                         )}
 
@@ -681,7 +692,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                                 if (data.success) {
                                                     alert("反映が完了しました！LINEで確認してください。");
                                                 } else {
-                                                    alert(`失敗しました: ${data.error || '不明なエラー'}`);
+                                                    alert(`失敗しました: ${data.error || '不明なエラー'} `);
                                                 }
                                             } catch (e) {
                                                 alert("通信エラーが発生しました。");
@@ -701,91 +712,148 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                     </div>
                 </div>
 
-                {/* Simulator Panel */}
+                {/* Simulator Panel (Authentic LINE Style) */}
                 <div className="lg:col-span-5">
                     <div className="sticky top-24">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 px-1">ライブシミュレーター</h3>
-                        <div className="relative mx-auto w-full max-w-[360px] aspect-[9/18.5] bg-slate-900 rounded-[3rem] border-[8px] border-slate-800 shadow-2xl overflow-hidden">
-                            <div className="absolute top-0 w-full h-12 bg-slate-800 flex items-center justify-between px-8 text-white/50 text-xs">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4 px-1">LINE画面 プレビュー</h3>
+                        <div className="relative mx-auto w-full max-w-[360px] aspect-[9/18.5] bg-slate-100 rounded-[3rem] border-[8px] border-slate-900 shadow-2xl overflow-hidden ring-1 ring-slate-900/5">
+                            {/* iPhone Notch Area */}
+                            <div className="absolute top-0 w-full h-8 flex items-center justify-between px-8 text-slate-900 text-[10px] font-bold z-20">
                                 <span>9:41</span>
-                                <div className="flex gap-1.5">
-                                    <div className="w-4 h-2 bg-white/50 rounded-full" />
+                                <div className="flex gap-1">
+                                    <div className="w-4 h-2 rounded-sm bg-slate-900/20" />
+                                    <div className="w-3 h-2 rounded-sm bg-slate-900/20" />
                                 </div>
                             </div>
 
-                            <div className="flex flex-col h-full bg-[#071426]">
-                                {/* Simulator Header */}
-                                <div className="pt-12 pb-4 px-6 border-b border-white/5 bg-[#0b1d33]/80 backdrop-blur-md relative">
-                                    <div className={cn(
-                                        "absolute top-14 right-6 px-1.5 py-0.5 border rounded text-[8px] font-bold uppercase tracking-widest",
-                                        geminiApiKey
-                                            ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                                            : "bg-primary-500/10 border-primary-500/20 text-primary-400"
-                                    )}>
-                                        {geminiApiKey ? 'Live AI' : 'Simulated'}
-                                    </div>
+                            <div className="flex flex-col h-full bg-[#8cabd0]">
+                                {/* LINE Header (Authentic) */}
+                                <div className="pt-8 pb-3 px-4 bg-[#8cabd0] flex items-center justify-between text-slate-800">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-white font-bold text-xs uppercase overflow-hidden">
-                                            {avatarUrl ? (
-                                                <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                name[0]
-                                            )}
+                                        <ArrowLeft size={18} className="text-slate-700" />
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="text-base font-bold truncate max-w-[140px]">{name}</h4>
+                                            <ChevronDown size={14} className="mt-0.5" />
                                         </div>
-                                        <div>
-                                            <h4 className="text-white text-sm font-bold">{name}</h4>
-                                            <p className="text-emerald-500 text-[10px] font-medium">オンライン</p>
-                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <Globe size={18} className="text-slate-700" />
+                                        <MenuIcon size={18} className="text-slate-700" />
                                     </div>
                                 </div>
 
-                                {/* Chat Messages */}
-                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                {/* Chat Messages (LINE Bubbles) */}
+                                <div className="flex-1 overflow-y-auto px-2 space-y-4 pb-4">
                                     {messages.map((msg, idx) => (
                                         <div key={idx} className={cn(
-                                            "flex",
-                                            msg.role === 'user' ? "justify-end" : "justify-start"
+                                            "flex items-start gap-2",
+                                            msg.role === 'user' ? "flex-row-reverse" : "flex-row"
                                         )}>
-                                            <div className={cn(
-                                                "max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed animate-in fade-in slide-in-from-bottom-2",
-                                                msg.role === 'user'
-                                                    ? "bg-primary-600 text-white rounded-tr-none shadow-lg shadow-primary-500/20"
-                                                    : "bg-slate-800 text-slate-100 rounded-tl-none"
-                                            )}>
-                                                {msg.text}
+                                            {msg.role !== 'user' && (
+                                                <div className="w-8 h-8 rounded-xl bg-primary-500 flex items-center justify-center text-white font-bold text-xs shrink-0 overflow-hidden shadow-sm">
+                                                    {avatarUrl ? (
+                                                        <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        name[0]
+                                                    )}
+                                                </div>
+                                            )}
+                                            <div className="flex flex-col max-w-[70%]">
+                                                {msg.role !== 'user' && (
+                                                    <span className="text-[10px] text-slate-800 ml-1 mb-1 font-medium">{name}</span>
+                                                )}
+                                                <div className={cn(
+                                                    "relative px-3 py-2 rounded-2xl text-[13px] leading-relaxed shadow-sm",
+                                                    msg.role === 'user'
+                                                        ? "bg-[#84e16d] text-slate-900 rounded-tr-sm"
+                                                        : "bg-white text-slate-900 rounded-tl-sm"
+                                                )}>
+                                                    {msg.text}
+                                                    <span className="absolute bottom-0 text-[8px] text-slate-600/60 whitespace-nowrap translate-y-1" style={{
+                                                        [msg.role === 'user' ? 'left' : 'right']: '-28px'
+                                                    }}>
+                                                        既読 20:53
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
                                     {isTyping && (
-                                        <div className="flex justify-start">
-                                            <div className="bg-slate-800 text-slate-400 px-4 py-2.5 rounded-2xl rounded-tl-none flex gap-1 animate-pulse">
-                                                <span className="w-1.5 h-1.5 bg-slate-600 rounded-full animate-bounce [animation-delay:0s]" />
-                                                <span className="w-1.5 h-1.5 bg-slate-600 rounded-full animate-bounce [animation-delay:0.2s]" />
-                                                <span className="w-1.5 h-1.5 bg-slate-600 rounded-full animate-bounce [animation-delay:0.4s]" />
+                                        <div className="flex items-start gap-2">
+                                            <div className="w-8 h-8 rounded-xl bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-400 font-bold text-xs shrink-0 animate-pulse">
+                                                ?
+                                            </div>
+                                            <div className="bg-white px-3 py-2 rounded-2xl rounded-tl-none flex gap-1 shadow-sm">
+                                                <span className="w-1 h-1 bg-slate-300 rounded-full animate-bounce" />
+                                                <span className="w-1 h-1 bg-slate-300 rounded-full animate-bounce [animation-delay:0.2s]" />
+                                                <span className="w-1 h-1 bg-slate-300 rounded-full animate-bounce [animation-delay:0.4s]" />
                                             </div>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Chat Input */}
-                                <div className="p-4 bg-[#0b1d33]/80 backdrop-blur-md border-t border-white/5">
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={inputText}
-                                            onChange={(e) => setInputText(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                                            disabled={isTyping}
-                                            placeholder={geminiApiKey ? "AIとチャットする..." : "メッセージを入力..."}
-                                            className="flex-1 bg-slate-800 text-white rounded-full px-4 py-2 text-sm outline-none border border-white/10 focus:border-primary-500/50 transition-colors disabled:opacity-50"
-                                        />
+                                {/* Rich Menu Preview Area */}
+                                {showRichMenuPreview && (
+                                    <div className="relative w-full aspect-[2500/1686] bg-slate-300 animate-in slide-in-from-bottom duration-300">
+                                        {richMenuBg ? (
+                                            <img src={richMenuBg} className="w-full h-full object-cover" alt="Rich Menu" />
+                                        ) : (
+                                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-200 border-t border-slate-300">
+                                                <Grid size={32} className="opacity-20 mb-2" />
+                                                <p className="text-[10px]">リッチメニュー未設定</p>
+                                            </div>
+                                        )}
+                                        <div className={cn(
+                                            "absolute inset-0 grid gap-px",
+                                            richMenuLayout === 'six' ? "grid-cols-3 grid-rows-2" : "grid-cols-3 grid-rows-1 h-1/2 bottom-0"
+                                        )}>
+                                            {(richMenuLayout === 'six' ? [0, 1, 2, 3, 4, 5] : [0, 1, 2]).map((idx) => (
+                                                <div key={idx} className="border border-white/10 flex items-center justify-center pointer-events-none">
+                                                    <span className="text-[10px] text-white/30 font-bold uppercase">{idx + 1}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* LINE Input Bar (Authentic) */}
+                                <div className="bg-white border-t border-slate-200">
+                                    <div className="flex items-center px-1 py-1">
                                         <button
-                                            onClick={handleSend}
-                                            disabled={isTyping}
-                                            className="p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition-colors disabled:opacity-50"
+                                            onClick={() => setShowRichMenuPreview(!showRichMenuPreview)}
+                                            className={cn(
+                                                "p-2 hover:bg-slate-50 rounded-lg transition-colors",
+                                                showRichMenuPreview ? "text-primary-600" : "text-slate-400"
+                                            )}
                                         >
-                                            <Send size={18} />
+                                            <Keyboard size={20} />
                                         </button>
+                                        <div className="flex-1 flex gap-2 items-center">
+                                            <button className="p-1 text-slate-400"><Plus size={20} /></button>
+                                            <div className="flex-1 relative">
+                                                <input
+                                                    type="text"
+                                                    value={inputText}
+                                                    onChange={(e) => setInputText(e.target.value)}
+                                                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                                    disabled={isTyping}
+                                                    placeholder="メッセージを入力"
+                                                    className="w-full bg-slate-100 rounded-lg px-3 py-1.5 text-[13px] outline-none text-slate-700"
+                                                />
+                                                <div className="absolute right-2 top-1.5 text-slate-400"><Smile size={18} /></div>
+                                            </div>
+                                            <button
+                                                onClick={handleSend}
+                                                disabled={isTyping}
+                                                className="p-1 text-primary-600 font-bold text-sm mr-1 disabled:opacity-30"
+                                            >
+                                                送信
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {/* Bottom Indicator (iPhone style) */}
+                                    <div className="h-6 flex items-center justify-center">
+                                        <div className="w-24 h-1 bg-slate-200 rounded-full" />
                                     </div>
                                 </div>
                             </div>
