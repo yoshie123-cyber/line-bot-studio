@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Zap, ChevronRight, Send } from 'lucide-react';
+import { Sparkles, Zap, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 import { cn } from '../lib/utils';
@@ -15,39 +15,49 @@ const LineChatAnimation = () => {
     ];
 
     return (
-        <div className="w-full max-w-[280px] sm:max-w-[320px] mx-auto bg-[#071426] rounded-[2rem] sm:rounded-[2.5rem] border-[4px] sm:border-[6px] border-slate-800 shadow-2xl overflow-hidden aspect-[9/16] relative flex flex-col">
+        <div className="w-full max-w-[280px] sm:max-w-[320px] mx-auto bg-[#8cabd0] rounded-[2rem] sm:rounded-[2.5rem] border-[4px] sm:border-[6px] border-slate-900 shadow-2xl overflow-hidden aspect-[9/16] relative flex flex-col">
             {/* Header */}
-            <div className="pt-6 sm:pt-8 pb-3 px-4 sm:px-6 bg-[#0b1d33]/90 backdrop-blur-md border-b border-white/5 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary-500 to-blue-500 flex items-center justify-center text-xs text-white font-bold">AI</div>
-                <div>
-                    <div className="text-[10px] font-bold text-white">AIアシスタント</div>
-                    <div className="text-[8px] text-emerald-400 flex items-center gap-1">
-                        <span className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
-                        応答可能
+            <div className="pt-6 sm:pt-8 pb-3 px-4 sm:px-6 bg-[#8cabd0] flex items-center justify-between text-slate-800 border-b border-black/5">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-blue-600 flex items-center justify-center text-xs text-white font-bold shadow-sm">AI</div>
+                    <div>
+                        <div className="text-[10px] font-bold">AIアシスタント</div>
+                        <div className="text-[8px] text-emerald-600 font-bold flex items-center gap-1">
+                            <span className="w-1 h-1 bg-emerald-600 rounded-full animate-pulse" />
+                            応答可能
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Content */}
-            <div className="flex-1 p-4 flex flex-col gap-4 overflow-hidden pt-6">
+            <div className="flex-1 p-3 flex flex-col gap-3 overflow-hidden pt-4">
                 {messages.map((msg, i) => (
                     <motion.div
                         key={i}
-                        initial={{ opacity: 0, x: msg.type === 'user' ? 20 : -20, y: 10 }}
-                        animate={{ opacity: 1, x: 0, y: 0 }}
-                        transition={{ delay: msg.delay, duration: 0.5 }}
+                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: msg.delay, duration: 0.4 }}
                         className={cn(
-                            "flex flex-col gap-1 max-w-[85%]",
-                            msg.type === 'user' ? "ml-auto items-end" : "mr-auto items-start"
+                            "flex gap-2 max-w-[85%]",
+                            msg.type === 'user' ? "ml-auto flex-row-reverse" : "flex-row"
                         )}
                     >
+                        {msg.type !== 'user' && (
+                            <div className="w-6 h-6 rounded-lg bg-primary-600 flex items-center justify-center text-[8px] text-white font-bold shrink-0 shadow-sm mt-1">AI</div>
+                        )}
                         <div className={cn(
-                            "px-4 py-2.5 rounded-2xl text-[11px] leading-relaxed shadow-sm",
+                            "px-3 py-1.5 rounded-2xl text-[11px] leading-relaxed shadow-sm relative",
                             msg.type === 'user'
-                                ? "bg-primary-600 text-white rounded-tr-none"
-                                : "bg-white/10 text-slate-100 border border-white/5 rounded-tl-none"
+                                ? "bg-[#84e16d] text-slate-900 rounded-tr-sm"
+                                : "bg-white text-slate-900 rounded-tl-sm"
                         )}>
                             {msg.text}
+                            <span className="absolute bottom-0 text-[7px] text-slate-600/60 whitespace-nowrap translate-y-1" style={{
+                                [msg.type === 'user' ? 'left' : 'right']: '-22px'
+                            }}>
+                                既読
+                            </span>
                         </div>
                     </motion.div>
                 ))}
@@ -57,20 +67,24 @@ const LineChatAnimation = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 1, 0] }}
                     transition={{ delay: 11, duration: 2, repeat: Infinity }}
-                    className="mr-auto px-4 py-2.5 bg-white/5 rounded-2xl text-[10px] text-slate-400 italic"
+                    className="mr-auto px-4 py-2.5 bg-white rounded-2xl text-[10px] text-slate-400 italic shadow-sm rounded-tl-none"
                 >
                     AIが考え中...
                 </motion.div>
             </div>
 
             {/* Input Bar */}
-            <div className="p-4 bg-slate-800/50 border-t border-white/5 flex gap-2">
-                <div className="flex-1 h-8 bg-white/5 rounded-full px-4 flex items-center text-[10px] text-slate-500">
+            <div className="p-3 bg-white border-t border-slate-200 flex gap-2 items-center">
+                <div className="flex-1 h-7 bg-slate-100 rounded-lg px-3 flex items-center text-[10px] text-slate-400">
                     メッセージを入力...
                 </div>
-                <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white">
-                    <Send size={14} />
+                <div className="text-primary-600 font-bold text-xs pr-1">
+                    送信
                 </div>
+            </div>
+            {/* iPhone style bottom bar */}
+            <div className="h-4 bg-white flex items-center justify-center">
+                <div className="w-16 h-1 bg-slate-200 rounded-full" />
             </div>
         </div>
     );
