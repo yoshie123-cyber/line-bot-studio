@@ -503,6 +503,16 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                                 <code className="text-[10px] text-primary-600 font-mono">[BUTTON:名前|送信内容]</code>
                                             </div>
                                             <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700 sm:col-span-2">
+                                                <p className="text-[9px] font-bold text-slate-400 mb-1">🎨 文字色・太字</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <code className="text-[9px] text-primary-600 font-mono">[RED:赤]</code>
+                                                    <code className="text-[9px] text-primary-600 font-mono">[BLUE:青]</code>
+                                                    <code className="text-[9px] text-primary-600 font-mono">[GREEN:緑]</code>
+                                                    <code className="text-[9px] text-primary-600 font-mono">[ORANGE:橙]</code>
+                                                    <code className="text-[9px] text-primary-600 font-mono">[BOLD:太字]</code>
+                                                </div>
+                                            </div>
+                                            <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700 sm:col-span-2">
                                                 <p className="text-[9px] font-bold text-slate-400 mb-1">✨ 高度なFlex Message（カード・画像など）</p>
                                                 <div className="flex flex-col gap-1.5">
                                                     <code className="text-[10px] text-primary-600 font-mono">[FLEX:{"{"}JSON内容{"}"}]</code>

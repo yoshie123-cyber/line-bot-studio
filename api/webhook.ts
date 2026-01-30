@@ -436,9 +436,12 @@ function parseRichMessage(text: string): any {
     const links = Array.from(text.matchAll(linkRegex));
     const buttons = Array.from(text.matchAll(buttonRegex));
 
-    // 3. FULL FLEX TAG [FLEX:{...}]
     const flexRegex = /\[FLEX:([\s\S]+?)\]/;
     const flexMatch = text.match(flexRegex);
+
+    // 4. COLOR & BOLD TAGS [RED:text] [BLUE:text] [GREEN:text] [BOLD:text]
+    const colorTagRegex = /\[(RED|BLUE|GREEN|ORANGE|BOLD):([^\]]+)\]/g;
+    const hasColorTags = colorTagRegex.test(text);
 
     if (flexMatch) {
         try {
@@ -460,11 +463,67 @@ function parseRichMessage(text: string): any {
         }
     }
 
-    if (links.length === 0 && buttons.length === 0) return null;
+    if (links.length === 0 && buttons.length === 0 && !hasColorTags) return null;
 
-    // Clean text: remove the tags
-    let cleanText = text.replace(linkRegex, '').replace(buttonRegex, '').trim();
-    if (!cleanText) cleanText = "以下のメニューをご確認ください：";
+    // Clean text: remove the tags for altText
+    let altText = text.replace(linkRegex, '').replace(buttonRegex, '').replace(colorTagRegex, '$2').trim();
+    if (!altText) altText = "メッセージがあります";
+
+    // Build the body contents (supporting color/bold tags)
+    const bodyContents: any[] = [];
+
+    // Split text by tags to create segments
+    let lastIndex = 0;
+    const segments: any[] = [];
+    const colorMap: Record<string, string> = {
+        'RED': '#EF4444',
+        'BLUE': '#3B82F6',
+        'GREEN': '#10B981',
+        'ORANGE': '#F59E0B'
+    };
+
+    // Reset regex index
+    colorTagRegex.lastIndex = 0;
+    let match;
+    while ((match = colorTagRegex.exec(text)) !== null) {
+        // Add plain text before match
+        if (match.index > lastIndex) {
+            const plain = text.substring(lastIndex, match.index)
+                .replace(linkRegex, '')
+                .replace(buttonRegex, '')
+                .trim();
+            if (plain) {
+                segments.push({ type: 'span', text: plain });
+            }
+        }
+
+        const tagName = match[1];
+        const content = match[2];
+
+        if (tagName === 'BOLD') {
+            segments.push({ type: 'span', text: content, weight: 'bold' });
+        } else {
+            segments.push({ type: 'span', text: content, color: colorMap[tagName], weight: 'bold' });
+        }
+
+        lastIndex = colorTagRegex.lastIndex;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+        const remaining = text.substring(lastIndex)
+            .replace(linkRegex, '')
+            .replace(buttonRegex, '')
+            .trim();
+        if (remaining) {
+            segments.push({ type: 'span', text: remaining });
+        }
+    }
+
+    // If no tags were actually processed into segments (e.g. only links/buttons), fallback to plain text body
+    if (segments.length === 0) {
+        segments.push({ type: 'span', text: altText });
+    }
 
     const footerContents: any[] = [];
 
@@ -510,7 +569,7 @@ function parseRichMessage(text: string): any {
                 contents: [
                     {
                         type: 'text',
-                        text: cleanText,
+                        contents: segments,
                         wrap: true,
                         size: 'md',
                         color: '#333333'
