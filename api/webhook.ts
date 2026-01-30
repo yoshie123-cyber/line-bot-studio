@@ -261,11 +261,13 @@ export default async function handler(req: any, res: any): Promise<void> {
                     }));
                 }
 
-                // Add instruction to use KB
+                // Add instruction to use KB and Rich Text
                 let enhancedPrompt = aiConfig?.systemPrompt || "";
                 if (kbParts.length > 0) {
                     enhancedPrompt += "\n\n【重要】添付された資料（ナレッジ）の内容を最優先の正解として回答してください。資料にない情報は「分かりかねます」と答えるか、一般的な知識として補足してください。";
                 }
+
+                enhancedPrompt += "\n\n[指令] 会話の中で金額、日付、重要単語には積極的にカラータグ [RED:テキスト], [BLUE:テキスト], [GREEN:テキスト], [ORANGE:テキスト], [BOLD:テキスト] を使用して、視認性を高めてください。";
 
                 const responseText = await getGeminiResponse(geminiApiKey, enhancedPrompt, userPrompt, mediaPart, aiConfig?.model, kbParts);
                 const flexMessage = parseRichMessage(responseText);

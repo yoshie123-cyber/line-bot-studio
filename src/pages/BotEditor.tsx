@@ -102,6 +102,31 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
     const [copyStatus, setCopyStatus] = useState(false);
 
+    // [NEW v1.10.1] Helper to render color tags in simulator
+    const renderMessageText = (text: string) => {
+        if (!text) return null;
+        const parts = text.split(/(\[(?:RED|BLUE|GREEN|ORANGE|BOLD):[^\]]+\])/g);
+        return parts.map((part, i) => {
+            const match = part.match(/\[(RED|BLUE|GREEN|ORANGE|BOLD):([^\]]+)\]/);
+            if (match) {
+                const tag = match[1];
+                const content = match[2];
+                const colorMap: Record<string, string> = {
+                    RED: 'text-red-600 dark:text-red-400',
+                    BLUE: 'text-blue-600 dark:text-blue-400',
+                    GREEN: 'text-emerald-600 dark:text-emerald-400',
+                    ORANGE: 'text-orange-600 dark:text-orange-400',
+                };
+                return (
+                    <span key={i} className={cn("font-bold", colorMap[tag])}>
+                        {content}
+                    </span>
+                );
+            }
+            return part;
+        });
+    };
+
     const handleCopyWebhook = () => {
         navigator.clipboard.writeText(webhookUrl);
         setCopyStatus(true);
@@ -118,8 +143,9 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
 
         try {
             if (geminiApiKey) {
-                // Real AI Call
-                const response = await getGeminiResponse(geminiApiKey, systemPrompt, userMsg);
+                // Real AI Call - Improved prompt to encourage rich text use
+                const enrichedPrompt = `${systemPrompt}\n\n[指令] 重要な価格、日付、キーワード、ポジティブな言葉にはカラータグ [RED:テキスト], [BLUE:テキスト], [GREEN:テキスト], [ORANGE:テキスト], [BOLD:テキスト] を積極的に使用して、視認性を高めてください。`;
+                const response = await getGeminiResponse(geminiApiKey, enrichedPrompt, userMsg);
                 setMessages(prev => [...prev, { role: 'bot', text: response }]);
             } else {
                 // Fallback Mock logic (Previous natural mock)
@@ -853,7 +879,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                                         ? "bg-[#84e16d] text-slate-900 rounded-tr-sm"
                                                         : "bg-white text-slate-900 rounded-tl-sm"
                                                 )}>
-                                                    {msg.text}
+                                                    {renderMessageText(msg.text)}
                                                     <span className="absolute bottom-0 text-[8px] text-slate-600/60 whitespace-nowrap translate-y-1" style={{
                                                         [msg.role === 'user' ? 'left' : 'right']: '-28px'
                                                     }}>
