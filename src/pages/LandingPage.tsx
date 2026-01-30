@@ -4,40 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 import { cn } from '../lib/utils';
 
-// [NEW v1.10.1] Shared helper to render color tags in simulator
-const renderMessageText = (text: string) => {
-    if (!text) return null;
-    const parts = text.split(/(\[(?:RED|BLUE|GREEN|ORANGE|BOLD):[^\]]+\])/g);
-    return parts.map((part, i) => {
-        const match = part.match(/\[(RED|BLUE|GREEN|ORANGE|BOLD):([^\]]+)\]/);
-        if (match) {
-            const tag = match[1];
-            const content = match[2];
-            const colorMap: Record<string, string> = {
-                RED: 'text-red-500 font-bold',
-                BLUE: 'text-blue-500 font-bold',
-                GREEN: 'text-emerald-500 font-bold',
-                ORANGE: 'text-orange-500 font-bold',
-                BOLD: 'font-bold'
-            };
-            return (
-                <span key={i} className={colorMap[tag]}>
-                    {content}
-                </span>
-            );
-        }
-        return part;
-    });
-};
-
 const LineChatAnimation = () => {
     const messages = [
         { type: 'user', text: 'おすすめの商品を教えて！', delay: 0 },
-        { type: 'bot', text: '今の季節なら [RED:オーガニック・ハーブティー] がギフトとして大人気ですよ！', delay: 1.5 },
+        { type: 'bot', text: '今の季節なら「オーガニック・ハーブティー」がギフトとして大人気ですよ！', delay: 1.5 },
         { type: 'user', text: 'いいですね！あと、明日の19時に予約を入れたいです。', delay: 4 },
-        { type: 'bot', text: '承知いたしました。[BLUE:明日の19時] に1名様でご予約を承りました！ [BOLD:お待ちしております！]', delay: 5.5 },
+        { type: 'bot', text: '承知いたしました。明日の19時に1名様でご予約を承りました！', delay: 5.5 },
         { type: 'user', text: 'ありがとう！助かります。', delay: 8 },
-        { type: 'bot', text: 'とんでもございません。お客様のビジネスを [GREEN:24時間サポート] いたします。', delay: 9.5 },
+        { type: 'bot', text: 'とんでもございません。お客様のビジネスを24時間サポートいたします。', delay: 9.5 },
     ];
 
     return (
@@ -73,12 +47,12 @@ const LineChatAnimation = () => {
                             <div className="w-6 h-6 rounded-lg bg-primary-600 flex items-center justify-center text-[8px] text-white font-bold shrink-0 shadow-sm mt-1">AI</div>
                         )}
                         <div className={cn(
-                            "px-3 py-1.5 rounded-2xl text-[11px] leading-relaxed shadow-sm relative whitespace-pre-wrap",
+                            "px-3 py-1.5 rounded-2xl text-[11px] leading-relaxed shadow-sm relative",
                             msg.type === 'user'
                                 ? "bg-[#84e16d] text-slate-900 rounded-tr-sm"
                                 : "bg-white text-slate-900 rounded-tl-sm"
                         )}>
-                            {renderMessageText(msg.text)}
+                            {msg.text}
                             <span className="absolute bottom-0 text-[7px] text-slate-600/60 whitespace-nowrap translate-y-1" style={{
                                 [msg.type === 'user' ? 'left' : 'right']: '-22px'
                             }}>

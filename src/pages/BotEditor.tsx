@@ -102,31 +102,6 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
     const [copyStatus, setCopyStatus] = useState(false);
 
-    // [NEW v1.10.1] Helper to render color tags in simulator
-    const renderMessageText = (text: string) => {
-        if (!text) return null;
-        const parts = text.split(/(\[(?:RED|BLUE|GREEN|ORANGE|BOLD):[^\]]+\])/g);
-        return parts.map((part, i) => {
-            const match = part.match(/\[(RED|BLUE|GREEN|ORANGE|BOLD):([^\]]+)\]/);
-            if (match) {
-                const tag = match[1];
-                const content = match[2];
-                const colorMap: Record<string, string> = {
-                    RED: 'text-red-600 dark:text-red-400',
-                    BLUE: 'text-blue-600 dark:text-blue-400',
-                    GREEN: 'text-emerald-600 dark:text-emerald-400',
-                    ORANGE: 'text-orange-600 dark:text-orange-400',
-                };
-                return (
-                    <span key={i} className={cn("font-bold", colorMap[tag])}>
-                        {content}
-                    </span>
-                );
-            }
-            return part;
-        });
-    };
-
     const handleCopyWebhook = () => {
         navigator.clipboard.writeText(webhookUrl);
         setCopyStatus(true);
@@ -143,9 +118,8 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
 
         try {
             if (geminiApiKey) {
-                // Real AI Call - Improved prompt to encourage rich text use
-                const enrichedPrompt = `${systemPrompt}\n\n[指令] 重要な価格、日付、キーワード、ポジティブな言葉にはカラータグ [RED:テキスト], [BLUE:テキスト], [GREEN:テキスト], [ORANGE:テキスト], [BOLD:テキスト] を積極的に使用して、視認性を高めてください。`;
-                const response = await getGeminiResponse(geminiApiKey, enrichedPrompt, userMsg);
+                // Real AI Call
+                const response = await getGeminiResponse(geminiApiKey, systemPrompt, userMsg);
                 setMessages(prev => [...prev, { role: 'bot', text: response }]);
             } else {
                 // Fallback Mock logic (Previous natural mock)
@@ -529,16 +503,6 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                                 <code className="text-[10px] text-primary-600 font-mono">[BUTTON:名前|送信内容]</code>
                                             </div>
                                             <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700 sm:col-span-2">
-                                                <p className="text-[9px] font-bold text-slate-400 mb-1">🎨 文字色・太字</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    <code className="text-[9px] text-primary-600 font-mono">[RED:赤]</code>
-                                                    <code className="text-[9px] text-primary-600 font-mono">[BLUE:青]</code>
-                                                    <code className="text-[9px] text-primary-600 font-mono">[GREEN:緑]</code>
-                                                    <code className="text-[9px] text-primary-600 font-mono">[ORANGE:橙]</code>
-                                                    <code className="text-[9px] text-primary-600 font-mono">[BOLD:太字]</code>
-                                                </div>
-                                            </div>
-                                            <div className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-primary-200 dark:border-primary-700 sm:col-span-2">
                                                 <p className="text-[9px] font-bold text-slate-400 mb-1">✨ 高度なFlex Message（カード・画像など）</p>
                                                 <div className="flex flex-col gap-1.5">
                                                     <code className="text-[10px] text-primary-600 font-mono">[FLEX:{"{"}JSON内容{"}"}]</code>
@@ -879,7 +843,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                                         ? "bg-[#84e16d] text-slate-900 rounded-tr-sm"
                                                         : "bg-white text-slate-900 rounded-tl-sm"
                                                 )}>
-                                                    {renderMessageText(msg.text)}
+                                                    {msg.text}
                                                     <span className="absolute bottom-0 text-[8px] text-slate-600/60 whitespace-nowrap translate-y-1" style={{
                                                         [msg.role === 'user' ? 'left' : 'right']: '-28px'
                                                     }}>
