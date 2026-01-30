@@ -167,7 +167,7 @@ export default async function handler(req: any, res: any): Promise<void> {
         }
 
         const botData = botDoc.data() || {};
-        const { lineConfig, geminiApiKey, aiConfig } = botData;
+        const { lineConfig, geminiApiKey, aiConfig, knowledgeBase } = botData;
         const channelSecret = lineConfig?.channelSecret;
         const channelAccessToken = lineConfig?.channelAccessToken;
 
@@ -237,7 +237,37 @@ export default async function handler(req: any, res: any): Promise<void> {
             }
 
             try {
-                const responseText = await getGeminiResponse(geminiApiKey, aiConfig?.systemPrompt || "", userPrompt, mediaPart, aiConfig?.model);
+                // [NEW v1.9.0] Fetch Knowledge Base materials
+                const kbParts: any[] = [];
+                if (knowledgeBase && Array.isArray(knowledgeBase)) {
+                    await Promise.all(knowledgeBase.slice(0, 3).map(async (kb: any) => {
+                        if (!kb.url) return;
+                        try {
+                            const kbRes = await fetch(kb.url);
+                            if (kbRes.ok) {
+                                const buffer = Buffer.from(await kbRes.arrayBuffer());
+                                let mimeType = kb.type === 'pdf' ? 'application/pdf' : (kb.type === 'image' ? 'image/jpeg' : (kbRes.headers.get('content-type') || 'image/jpeg'));
+                                if (kb.url.endsWith('.pdf')) mimeType = 'application/pdf';
+                                kbParts.push({
+                                    inlineData: {
+                                        data: buffer.toString('base64'),
+                                        mimeType
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.error('[KB_FETCH_ERR]', e);
+                        }
+                    }));
+                }
+
+                // Add instruction to use KB
+                let enhancedPrompt = aiConfig?.systemPrompt || "";
+                if (kbParts.length > 0) {
+                    enhancedPrompt += "\n\n【重要】添付された資料（ナレッジ）の内容を最優先の正解として回答してください。資料にない情報は「分かりかねます」と答えるか、一般的な知識として補足してください。";
+                }
+
+                const responseText = await getGeminiResponse(geminiApiKey, enhancedPrompt, userPrompt, mediaPart, aiConfig?.model, kbParts);
                 const flexMessage = parseRichMessage(responseText);
 
                 if (flexMessage) {
@@ -258,7 +288,7 @@ export default async function handler(req: any, res: any): Promise<void> {
     }
 }
 
-async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string) {
+async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessage: string, mediaPart?: any, preferredModel?: string, extraParts?: any[]) {
     const WEBHOOK_VERSION = 'v1.6.5-flash-2.5';
     const cleanKey = apiKey.trim();
 
@@ -286,6 +316,9 @@ async function getGeminiResponse(apiKey: string, systemPrompt: string, userMessa
                 const parts: any[] = [{ text: `System: ${systemPrompt}\n\nUser: ${userMessage}` }];
                 if (mediaPart) {
                     parts.push(mediaPart);
+                }
+                if (extraParts && extraParts.length > 0) {
+                    parts.push(...extraParts);
                 }
 
                 const sendRequest = () => fetch(url, {

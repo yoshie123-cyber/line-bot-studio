@@ -44,6 +44,7 @@ interface BotData {
             value: string;
         }>;
     };
+    knowledgeBase?: Array<{ url: string, type: 'pdf' | 'image' | 'auto' }>;
 }
 
 interface BotEditorProps {
@@ -54,7 +55,7 @@ interface BotEditorProps {
 }
 
 export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSave }) => {
-    const [activeTab, setActiveTab] = useState('basic');
+    const [activeTab, setActiveTab] = useState<'basic' | 'line' | 'ai' | 'richmenu' | 'knowledge'>('basic');
     const [messages, setMessages] = useState([
         { role: 'bot', text: 'こんにちは！何かお手伝いできることはありますか？' }
     ]);
@@ -92,6 +93,11 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
         ]
     );
     const [selectedButtonIdx, setSelectedButtonIdx] = useState<number | null>(null);
+
+    // Knowledge Base state
+    const [knowledgeBase, setKnowledgeBase] = useState<Array<{ url: string, type: 'pdf' | 'image' | 'auto' }>>(
+        bot.knowledgeBase || []
+    );
 
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
     const [copyStatus, setCopyStatus] = useState(false);
@@ -147,6 +153,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                 name,
                 description,
                 geminiApiKey,
+                knowledgeBase,
                 lineConfig: {
                     channelSecret,
                     channelAccessToken
@@ -177,6 +184,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
         { id: 'line', icon: Globe, label: 'LINE連携' },
         { id: 'ai', icon: Cpu, label: 'AI設定' },
         { id: 'richmenu', icon: Grid, label: 'リッチメニュー' },
+        { id: 'knowledge', icon: BookOpen, label: 'ナレッジ (新機能)' },
     ];
 
     return (
@@ -226,7 +234,7 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => setActiveTab(tab.id as any)}
                                 className={cn(
                                     "flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
                                     activeTab === tab.id
@@ -317,6 +325,73 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
                                                 <span>LINE公式アカウントからアイコンと名前を取得</span>
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'knowledge' && (
+                            <div className="space-y-6">
+                                <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 rounded-xl">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center text-white">
+                                            <BookOpen size={16} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-blue-800 dark:text-blue-300">ナレッジ共有 (PDF・画像読み込み)</h4>
+                                            <p className="text-[10px] text-blue-600 dark:text-blue-500">
+                                                資料のURLを登録すると、AIがその内容を「正解の根拠」として学習します。
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4 mt-4">
+                                        {knowledgeBase.map((kb, idx) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="https://example.com/guide.pdf"
+                                                    className="flex-1 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500/20"
+                                                    value={kb.url}
+                                                    onChange={(e) => {
+                                                        const newKb = [...knowledgeBase];
+                                                        newKb[idx].url = e.target.value;
+                                                        setKnowledgeBase(newKb);
+                                                    }}
+                                                />
+                                                <select
+                                                    className="text-[10px] bg-white border border-blue-200 rounded-lg px-2 outline-none"
+                                                    value={kb.type}
+                                                    onChange={(e) => {
+                                                        const newKb = [...knowledgeBase];
+                                                        newKb[idx].type = e.target.value as any;
+                                                        setKnowledgeBase(newKb);
+                                                    }}
+                                                >
+                                                    <option value="auto">自動判別</option>
+                                                    <option value="pdf">PDF</option>
+                                                    <option value="image">画像</option>
+                                                </select>
+                                                <button
+                                                    onClick={() => setKnowledgeBase(prev => prev.filter((_, i) => i !== idx))}
+                                                    className="p-2 text-slate-400 hover:text-red-500"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {knowledgeBase.length < 5 && (
+                                            <button
+                                                onClick={() => setKnowledgeBase(prev => [...prev, { url: '', type: 'auto' }])}
+                                                className="w-full py-2 border-2 border-dashed border-blue-200 rounded-lg text-xs text-blue-600 font-bold hover:bg-blue-50 transition-colors"
+                                            >
+                                                + 資料URLを追加
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="mt-4 p-3 bg-white/50 rounded-lg border border-blue-100">
+                                        <p className="text-[10px] text-slate-500 leading-relaxed">
+                                            <span className="font-bold text-blue-600">※重要:</span> 資料URLは、AIが直接アクセスできる公開URLである必要があります。DropboxやGoogleドライブの場合は「直リンク」を取得して入力してください。
+                                        </p>
                                     </div>
                                 </div>
                             </div>
