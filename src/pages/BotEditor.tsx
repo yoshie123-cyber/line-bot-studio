@@ -697,25 +697,25 @@ export const BotEditor: React.FC<BotEditorProps> = ({ bot, userId, onBack, onSav
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
-                                            <ImageIcon size={14} className="text-slate-400" />
-                                            <span>背景画像 URL</span>
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <input
-                                                type="text"
-                                                placeholder="https://example.com/menu-bg.png"
-                                                className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary-500/20 text-sm font-mono"
-                                                value={richMenuBg}
-                                                onChange={(e) => setRichMenuBg(e.target.value)}
-                                            />
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="text-sm font-semibold flex items-center gap-2">
+                                                <ImageIcon size={14} className="text-slate-400" />
+                                                <span>背景画像 URL</span>
+                                            </label>
                                             <button
                                                 onClick={() => setRichMenuBg('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=2500&h=1686')}
-                                                className="px-3 py-3 bg-slate-200 dark:bg-slate-800 rounded-xl text-[10px] font-bold hover:bg-slate-300 transition-colors shrink-0"
+                                                className="text-[10px] font-bold text-primary-600 hover:text-primary-700 transition-colors"
                                             >
                                                 テスト用画像を使用
                                             </button>
                                         </div>
+                                        <input
+                                            type="text"
+                                            placeholder="https://example.com/menu-bg.png"
+                                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary-500/20 text-sm font-mono"
+                                            value={richMenuBg}
+                                            onChange={(e) => setRichMenuBg(e.target.value)}
+                                        />
                                         <p className="text-[10px] text-slate-500 mt-2">
                                             推奨サイズ: 2500 × 1686 px (PNG/JPG)<br />
                                             <span className="text-primary-600 font-bold">※Canvaの場合:</span> 公開リンクではなく、画像を右クリックして「画像アドレスをコピー」したURLを貼ってください。
